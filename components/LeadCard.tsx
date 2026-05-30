@@ -5,6 +5,10 @@ import {
 } from "react";
 
 import {
+  toast,
+} from "sonner";
+
+import {
   deleteLead,
 } from "@/actions/deleteLead";
 
@@ -13,6 +17,9 @@ from "@/components/LeadDetailsModal";
 
 import EditLeadModal
 from "@/components/EditLeadModal";
+
+import AIModal
+from "@/components/AIModal";
 
 export default function LeadCard({
   lead,
@@ -28,19 +35,25 @@ export default function LeadCard({
     setEditOpen,
   ] = useState(false);
 
+  const [
+    aiOpen,
+    setAiOpen,
+  ] = useState(false);
+
+  const [
+    aiText,
+    setAiText,
+  ] = useState("");
+
   return (
 
     <>
 
       <div
 
-        className="
+        className={`
           group
           relative
-
-          bg-white dark:bg-[#111113]
-
-          border border-zinc-200 dark:border-zinc-800
 
           rounded-3xl
 
@@ -52,11 +65,35 @@ export default function LeadCard({
 
           hover:shadow-2xl
           hover:-translate-y-1
-          hover:border-blue-500/30
 
           transition-all
           duration-300
-        "
+
+          ${
+            lead.ai_temperature === "HOT"
+
+              ? `
+                bg-red-500/5
+                border border-red-500/30
+                hover:border-red-500
+                shadow-red-500/10
+              `
+
+              : lead.ai_temperature === "WARM"
+
+              ? `
+                bg-yellow-500/5
+                border border-yellow-500/20
+                hover:border-yellow-500
+              `
+
+              : `
+                bg-white dark:bg-[#111113]
+                border border-zinc-200 dark:border-zinc-800
+                hover:border-blue-500/30
+              `
+          }
+        `}
       >
 
         <div className="flex items-start justify-between gap-3">
@@ -329,7 +366,101 @@ export default function LeadCard({
 
         }
 
-        <div className="flex items-center gap-2">
+        {
+
+          lead.ai_action && (
+
+            <div
+              className="
+                bg-purple-500/10
+
+                border border-purple-500/20
+
+                rounded-2xl
+
+                p-3
+              "
+            >
+
+              <p
+                className="
+                  text-xs
+                  font-bold
+
+                  text-purple-400
+
+                  mb-1
+                "
+              >
+                Acción Recomendada IA
+              </p>
+
+              <p
+                className="
+                  text-xs
+
+                  text-purple-200
+
+                  leading-relaxed
+                "
+              >
+                {lead.ai_action}
+              </p>
+
+            </div>
+
+          )
+
+        }
+
+        {
+
+          lead.ai_close_probability && (
+
+            <div
+              className="
+                bg-emerald-500/10
+
+                border border-emerald-500/20
+
+                rounded-2xl
+
+                p-3
+              "
+            >
+
+              <p
+                className="
+                  text-xs
+                  font-bold
+
+                  text-emerald-400
+
+                  mb-1
+                "
+              >
+                Probabilidad de Cierre
+              </p>
+
+              <p
+                className="
+                  text-xs
+
+                  text-emerald-200
+
+                  leading-relaxed
+                "
+              >
+                {lead.ai_close_probability}
+              </p>
+
+            </div>
+
+          )
+
+        }
+
+        <div className="flex items-center gap-2 flex-wrap">
 
           <button
             type="button"
@@ -393,6 +524,87 @@ export default function LeadCard({
             "
           >
             Editar
+          </button>
+
+          <button
+            type="button"
+
+            onClick={async (e) => {
+
+              e.stopPropagation();
+
+              try {
+
+                const res =
+                  await fetch(
+                    "/api/ai-followup",
+                    {
+
+                      method: "POST",
+
+                      headers: {
+                        "Content-Type":
+                          "application/json",
+                      },
+
+                      body: JSON.stringify({
+
+                        name:
+                          lead.name,
+
+                        company:
+                          lead.company,
+
+                        email:
+                          lead.email,
+
+                      }),
+
+                    }
+                  );
+
+                const data =
+                  await res.json();
+
+                setAiText(
+                  data.text
+                );
+
+                setAiOpen(true);
+
+              } catch (err) {
+
+                console.log(err);
+
+                toast.error(
+                  "Error generando IA"
+                );
+
+              }
+
+            }}
+
+            className="
+              flex-1
+
+              bg-purple-600
+              hover:bg-purple-700
+
+              transition
+
+              text-white
+
+              px-3 py-2
+
+              rounded-xl
+
+              text-xs
+              font-semibold
+            "
+          >
+
+            ✨ IA Real
+
           </button>
 
           {
@@ -490,6 +702,22 @@ solo quería saludarte y compartirte que seguimos disponibles si en algún momen
             onClose={() =>
               setEditOpen(false)
             }
+          />
+
+        )
+
+      }
+
+      {
+
+        aiOpen && (
+
+          <AIModal
+            open={aiOpen}
+            onClose={() =>
+              setAiOpen(false)
+            }
+            text={aiText}
           />
 
         )

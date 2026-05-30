@@ -4,14 +4,46 @@ import {
   supabaseAdmin,
 } from "@/lib/supabase-admin";
 
+import {
+  createClient,
+} from "@/lib/supabase-server";
+
+import AnalyticsChart
+from "@/components/AnalyticsChart";
+
+import AIInsights
+from "@/components/AIInsights";
+
+import AIRecommendations
+from "@/components/AIRecommendations";
+
 export default async function AnalyticsPage() {
+
+  const supabase =
+    await createClient();
+
+  const {
+    data: { user },
+  } =
+    await supabase.auth.getUser();
+
+  if (!user) {
+
+    return null;
+
+  }
 
   const { data: leads } =
     await supabaseAdmin
 
       .from("leads")
 
-      .select("*");
+      .select("*")
+
+      .eq(
+        "user_id",
+        user.id
+      );
 
   const totalLeads =
     leads?.length || 0;
@@ -36,63 +68,204 @@ export default async function AnalyticsPage() {
 
   return (
 
-    <main className="min-h-screen bg-[#09090B] text-white p-10">
+    <main
+      className="
+        min-h-screen
 
-      <h1 className="text-5xl font-black mb-10">
-        Analytics CRM
-      </h1>
+        bg-[#09090B]
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        text-white
 
-        <div className="bg-zinc-900 p-6 rounded-3xl">
+        p-6
+        md:p-10
 
-          <p className="text-zinc-400">
+        mt-16
+        lg:mt-0
+      "
+    >
+
+      <div className="mb-10">
+
+        <p
+          className="
+            text-zinc-500
+            text-sm
+          "
+        >
+          CRM AI
+        </p>
+
+        <h1
+          className="
+            text-4xl
+            md:text-6xl
+
+            font-black
+
+            mt-2
+          "
+        >
+          Analytics CRM
+        </h1>
+
+      </div>
+
+      <div
+        className="
+          grid
+          grid-cols-1
+          md:grid-cols-2
+          xl:grid-cols-4
+
+          gap-6
+        "
+      >
+
+        <div
+          className="
+            bg-[#111113]
+
+            p-6
+
+            rounded-3xl
+
+            border
+            border-zinc-800
+          "
+        >
+
+          <p
+            className="
+              text-zinc-400
+            "
+          >
             Total Leads
           </p>
 
-          <h2 className="text-5xl font-black mt-4">
+          <h2
+            className="
+              text-5xl
+              font-black
+
+              mt-4
+            "
+          >
             {totalLeads}
           </h2>
 
         </div>
 
-        <div className="bg-red-500/20 p-6 rounded-3xl">
+        <div
+          className="
+            bg-red-500/10
 
-          <p className="text-red-400">
+            p-6
+
+            rounded-3xl
+
+            border
+            border-red-500/20
+          "
+        >
+
+          <p
+            className="
+              text-red-400
+            "
+          >
             HOT Leads
           </p>
 
-          <h2 className="text-5xl font-black mt-4">
+          <h2
+            className="
+              text-5xl
+              font-black
+
+              mt-4
+            "
+          >
             {hotLeads}
           </h2>
 
         </div>
 
-        <div className="bg-yellow-500/20 p-6 rounded-3xl">
+        <div
+          className="
+            bg-yellow-500/10
 
-          <p className="text-yellow-400">
+            p-6
+
+            rounded-3xl
+
+            border
+            border-yellow-500/20
+          "
+        >
+
+          <p
+            className="
+              text-yellow-400
+            "
+          >
             WARM Leads
           </p>
 
-          <h2 className="text-5xl font-black mt-4">
+          <h2
+            className="
+              text-5xl
+              font-black
+
+              mt-4
+            "
+          >
             {warmLeads}
           </h2>
 
         </div>
 
-        <div className="bg-blue-500/20 p-6 rounded-3xl">
+        <div
+          className="
+            bg-blue-500/10
 
-          <p className="text-blue-400">
+            p-6
+
+            rounded-3xl
+
+            border
+            border-blue-500/20
+          "
+        >
+
+          <p
+            className="
+              text-blue-400
+            "
+          >
             COLD Leads
           </p>
 
-          <h2 className="text-5xl font-black mt-4">
+          <h2
+            className="
+              text-5xl
+              font-black
+
+              mt-4
+            "
+          >
             {coldLeads}
           </h2>
 
         </div>
 
       </div>
+
+      <AnalyticsChart />
+
+      <AIInsights />
+
+      <AIRecommendations
+        leads={leads || []}
+      />
 
     </main>
 

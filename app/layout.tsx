@@ -10,6 +10,9 @@ import {
   Toaster,
 } from "sonner";
 
+import AINotifications
+from "@/components/AINotifications";
+
 export const metadata: Metadata = {
 
   title: "CRM AI Core",
@@ -58,6 +61,8 @@ export default function RootLayout({
           </main>
 
         </div>
+
+        <AINotifications />
 
         <Toaster
           richColors

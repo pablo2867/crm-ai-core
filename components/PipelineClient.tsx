@@ -252,19 +252,16 @@ export default function PipelineClient({
           className="
             w-full
 
-            bg-white
-            dark:bg-[#111113]
+            bg-[#111113]
 
             border
-            border-zinc-200
-            dark:border-zinc-800
+            border-zinc-800
 
             rounded-2xl
 
             px-5 py-4
 
-            text-black
-            dark:text-white
+            text-white
 
             outline-none
 
@@ -298,7 +295,7 @@ export default function PipelineClient({
                   ${
                     filter === item
                       ? "bg-blue-600 text-white"
-                      : "bg-white dark:bg-[#111113] border border-zinc-200 dark:border-zinc-800"
+                      : "bg-[#111113] border border-zinc-800 text-white"
                   }
                 `}
               >
@@ -330,12 +327,10 @@ export default function PipelineClient({
 
         <div
           className="
-            bg-white
-            dark:bg-[#111113]
+            bg-[#111113]
 
             border
-            border-zinc-200
-            dark:border-zinc-800
+            border-zinc-800
 
             rounded-3xl
 
@@ -362,12 +357,10 @@ export default function PipelineClient({
 
         <div
           className="
-            bg-white
-            dark:bg-[#111113]
+            bg-[#111113]
 
             border
-            border-zinc-200
-            dark:border-zinc-800
+            border-zinc-800
 
             rounded-3xl
 
@@ -394,12 +387,10 @@ export default function PipelineClient({
 
         <div
           className="
-            bg-white
-            dark:bg-[#111113]
+            bg-[#111113]
 
             border
-            border-zinc-200
-            dark:border-zinc-800
+            border-zinc-800
 
             rounded-3xl
 
@@ -426,12 +417,10 @@ export default function PipelineClient({
 
         <div
           className="
-            bg-white
-            dark:bg-[#111113]
+            bg-[#111113]
 
             border
-            border-zinc-200
-            dark:border-zinc-800
+            border-zinc-800
 
             rounded-3xl
 

@@ -23,6 +23,50 @@ export async function POST(
 
   try {
 
+    const authHeader =
+      request.headers.get(
+        "authorization"
+      );
+
+    if (!authHeader) {
+
+      return NextResponse.json({
+
+        success: false,
+
+        result:
+          "Unauthorized",
+
+      });
+
+    }
+
+    const token =
+      authHeader.replace(
+        "Bearer ",
+        ""
+      );
+
+    const {
+      data: { user },
+    } =
+      await supabase.auth.getUser(
+        token
+      );
+
+    if (!user) {
+
+      return NextResponse.json({
+
+        success: false,
+
+        result:
+          "Unauthorized",
+
+      });
+
+    }
+
     const body =
       await request.json();
 
@@ -125,28 +169,38 @@ Resumen: una sola línea corta
         : 0;
 
     const ai_temperature =
-      tempMatch?.[1]?.trim()
+      tempMatch?.[1]
+        ?.trim()
         ?.toUpperCase() ||
       "COLD";
 
     const ai_probability =
-      probabilityMatch?.[1]?.trim() ||
+      probabilityMatch?.[1]
+        ?.trim() ||
       "Media";
 
     const ai_priority =
-      priorityMatch?.[1]?.trim() ||
+      priorityMatch?.[1]
+        ?.trim() ||
       "Media";
 
     const ai_analysis =
-      summaryMatch?.[1]?.trim() ||
+      summaryMatch?.[1]
+        ?.trim() ||
       "Sin análisis";
 
     console.log({
+
       ai_score,
+
       ai_temperature,
+
       ai_probability,
+
       ai_priority,
+
       ai_analysis,
+
     });
 
     const cleanEmail =
@@ -178,6 +232,11 @@ Resumen: una sola línea corta
       .eq(
         "email",
         cleanEmail
+      )
+
+      .eq(
+        "user_id",
+        user.id
       )
 
       .select();

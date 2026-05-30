@@ -59,36 +59,17 @@ export default async function PipelinePage() {
 
   }
 
+  console.log(
+    "PIPELINE USER:",
+    user.id
+  );
+
   const result =
     await supabase
 
       .from("leads")
 
-      .select(`
-
-        *,
-
-        lead_notes (
-          id,
-          note,
-          created_at
-        ),
-
-        activities (
-          id,
-          type,
-          description,
-          created_at
-        ),
-
-        reminders (
-          id,
-          title,
-          remind_at,
-          completed
-        )
-
-      `)
+      .select("*")
 
       .eq(
         "user_id",
@@ -105,35 +86,55 @@ export default async function PipelinePage() {
   const leads =
     result.data || [];
 
+  console.log(
+    "PIPELINE LEADS:",
+    leads.length
+  );
+
+  console.log(
+    "PIPELINE ERROR:",
+    result.error
+  );
+
   return (
 
-    <section className="p-6 min-h-screen bg-[#F5F7FB] dark:bg-[#09090B]">
+    <section
+      className="
+        p-6
+        min-h-screen
+        bg-[#09090B]
+      "
+    >
 
       <div
         className="
           mb-10
           mt-16
           lg:mt-0
-
           flex
           items-center
           justify-between
-
           gap-4
         "
       >
 
         <div>
 
-          <p className="text-zinc-500 text-sm">
+          <p
+            className="
+              text-zinc-500
+              text-sm
+            "
+          >
             CRM AI
           </p>
 
           <h1
             className="
-              text-4xl md:text-6xl
+              text-4xl
+              md:text-6xl
               font-black
-              text-black dark:text-white
+              text-white
               mt-2
             "
           >

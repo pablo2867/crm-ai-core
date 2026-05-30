@@ -72,28 +72,82 @@ export default async function LeadsPage({
 
   return (
 
-    <section className="p-4 md:p-8 min-h-screen bg-[#F5F7FB] dark:bg-[#09090B] transition-colors duration-300">
+    <section
+      className="
+        p-4
+        md:p-8
 
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-8 mb-10 mt-16 lg:mt-0">
+        min-h-screen
+
+        bg-[#09090B]
+
+        transition-colors
+        duration-300
+      "
+    >
+
+      <div
+        className="
+          flex
+          flex-col
+          xl:flex-row
+
+          xl:items-center
+          xl:justify-between
+
+          gap-8
+
+          mb-10
+          mt-16
+          lg:mt-0
+        "
+      >
 
         <div>
 
-          <p className="text-zinc-500 text-sm">
+          <p
+            className="
+              text-zinc-500
+              text-sm
+            "
+          >
             CRM AI
           </p>
 
-          <h1 className="text-4xl md:text-6xl font-black text-black dark:text-white mt-2">
+          <h1
+            className="
+              text-4xl
+              md:text-6xl
+
+              font-black
+
+              text-white
+
+              mt-2
+            "
+          >
             Leads
           </h1>
 
-          <form className="mt-6 relative w-full md:w-96">
+          <form
+            className="
+              mt-6
+              relative
+
+              w-full
+              md:w-96
+            "
+          >
 
             <Search
               size={18}
               className="
                 absolute
-                left-4 top-1/2
+                left-4
+                top-1/2
+
                 -translate-y-1/2
+
                 text-zinc-500
               "
             />
@@ -105,12 +159,22 @@ export default async function LeadsPage({
               placeholder="Buscar lead..."
               className="
                 w-full
-                pl-11 pr-4 py-4
+
+                pl-11
+                pr-4
+                py-4
+
                 rounded-2xl
-                bg-white dark:bg-[#111113]
-                border border-zinc-200 dark:border-zinc-800
-                text-black dark:text-white
+
+                bg-[#111113]
+
+                border
+                border-zinc-800
+
+                text-white
+
                 outline-none
+
                 focus:ring-2
                 focus:ring-blue-500
               "
@@ -134,6 +198,7 @@ export default async function LeadsPage({
               grid
               grid-cols-1
               xl:grid-cols-2
+
               gap-6
             "
           >
@@ -157,11 +222,19 @@ export default async function LeadsPage({
 
           <div
             className="
-              bg-white dark:bg-[#111113]
-              border border-zinc-200 dark:border-zinc-800
+              bg-[#111113]
+
+              border
+              border-zinc-800
+
               rounded-3xl
+
               p-20
-              flex flex-col items-center justify-center
+
+              flex
+              flex-col
+              items-center
+              justify-center
             "
           >
 
@@ -173,13 +246,19 @@ export default async function LeadsPage({
               className="
                 text-3xl
                 font-black
-                text-black dark:text-white
+
+                text-white
               "
             >
               No hay leads todavía
             </h2>
 
-            <p className="text-zinc-500 mt-4">
+            <p
+              className="
+                text-zinc-500
+                mt-4
+              "
+            >
               Agrega tu primer lead para comenzar.
             </p>
 

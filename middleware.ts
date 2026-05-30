@@ -70,9 +70,20 @@ export async function middleware(
     );
 
   const {
-    data: { session },
+    data: { user },
+    error,
   } =
-    await supabase.auth.getSession();
+    await supabase.auth.getUser();
+
+  console.log(
+    "MIDDLEWARE USER:",
+    user?.email
+  );
+
+  console.log(
+    "MIDDLEWARE ERROR:",
+    error
+  );
 
   const protectedRoutes = [
     "/dashboard",
@@ -95,9 +106,13 @@ export async function middleware(
       "/signup";
 
   if (
-    !session &&
+    !user &&
     isProtectedRoute
   ) {
+
+    console.log(
+      "REDIRECT LOGIN"
+    );
 
     return NextResponse.redirect(
       new URL(
@@ -109,9 +124,13 @@ export async function middleware(
   }
 
   if (
-    session &&
+    user &&
     isAuthPage
   ) {
+
+    console.log(
+      "REDIRECT DASHBOARD"
+    );
 
     return NextResponse.redirect(
       new URL(

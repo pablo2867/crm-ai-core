@@ -6,8 +6,7 @@ import {
   Draggable,
 } from "@hello-pangea/dnd";
 
-import LeadCard
-from "@/components/LeadCard";
+import LeadCard from "@/components/LeadCard";
 
 export default function PipelineBoard({
   columns,
@@ -17,9 +16,9 @@ export default function PipelineBoard({
     result: any
   ) => {
 
-    if (
-      !result.destination
-    ) return;
+    if (!result.destination) {
+      return;
+    }
 
     const leadId =
       Number(
@@ -47,17 +46,21 @@ export default function PipelineBoard({
 
             id: leadId,
 
-            status:
-              newStatus,
+            status: newStatus,
 
           }),
 
         }
       );
 
+      window.location.reload();
+
     } catch (err) {
 
-      console.log(err);
+      console.log(
+        "ERROR UPDATE STATUS:",
+        err
+      );
 
     }
 
@@ -73,165 +76,206 @@ export default function PipelineBoard({
         className="
           grid
           grid-cols-1
+          lg:grid-cols-2
           xl:grid-cols-3
 
           gap-6
+          items-start
         "
       >
 
-        {
+        {columns.map(
+          (column: any) => (
 
-          columns.map(
-            (column: any) => (
+            <Droppable
+              droppableId={
+                column.title
+              }
+              key={
+                column.title
+              }
+            >
 
-              <Droppable
-                droppableId={
-                  column.title
-                }
-                key={column.title}
-              >
+              {(provided) => (
 
-                {(provided) => (
+                <div
+
+                  ref={
+                    provided.innerRef
+                  }
+
+                  {...provided.droppableProps}
+
+                  className="
+                    bg-white
+                    dark:bg-[#111113]
+
+                    border
+                    border-zinc-200
+                    dark:border-zinc-800
+
+                    rounded-3xl
+
+                    p-5
+
+                    min-h-[700px]
+                  "
+                >
 
                   <div
-
-                    ref={
-                      provided.innerRef
-                    }
-
-                    {
-                      ...provided.droppableProps
-                    }
-
                     className="
-                      bg-white
-                      dark:bg-[#111113]
+                      flex
+                      items-center
+                      justify-between
 
-                      border
-                      border-zinc-200
-                      dark:border-zinc-800
-
-                      rounded-3xl
-
-                      p-5
-
-                      min-h-[500px]
+                      mb-6
                     "
                   >
 
-                    <div
+                    <h2
                       className="
-                        flex
-                        items-center
-                        justify-between
-
-                        mb-6
+                        text-xl
+                        font-bold
+                        text-black
+                        dark:text-white
                       "
                     >
+                      {column.title}
+                    </h2>
 
-                      <h2
-                        className="
-                          text-xl
-                          font-bold
-                          text-black
-                          dark:text-white
-                        "
-                      >
-                        {column.title}
-                      </h2>
+                    <span
+                      className="
+                        bg-zinc-100
+                        dark:bg-zinc-800
 
-                      <span
-                        className="
-                          bg-zinc-100
-                          dark:bg-zinc-800
+                        px-3
+                        py-1
 
-                          px-3 py-1
+                        rounded-full
 
-                          rounded-full
-
-                          text-sm
-                        "
-                      >
-                        {
-                          column.leads.length
-                        }
-                      </span>
-
-                    </div>
-
-                    <div className="space-y-5">
-
+                        text-sm
+                      "
+                    >
                       {
-
-                        column.leads.map(
-                          (
-                            lead: any,
-                            index: number
-                          ) => (
-
-                            <Draggable
-
-                              key={lead.id}
-
-                              draggableId={
-                                String(
-                                  lead.id
-                                )
-                              }
-
-                              index={index}
-                            >
-
-                              {(provided) => (
-
-                                <div
-
-                                  ref={
-                                    provided.innerRef
-                                  }
-
-                                  {
-                                    ...provided.draggableProps
-                                  }
-
-                                  {
-                                    ...provided.dragHandleProps
-                                  }
-                                >
-
-                                  <LeadCard
-                                    lead={lead}
-                                  />
-
-                                </div>
-
-                              )}
-
-                            </Draggable>
-
-                          )
-
-                        )
-
+                        column.leads.length
                       }
-
-                      {
-                        provided.placeholder
-                      }
-
-                    </div>
+                    </span>
 
                   </div>
 
-                )}
+                  <div
+                    className="
+                      space-y-4
+                    "
+                  >
 
-              </Droppable>
+                    {[...column.leads]
 
-            )
+                      .sort(
+                        (
+                          a: any,
+                          b: any
+                        ) => {
+
+                          const priority = {
+
+                            HOT: 3,
+                            WARM: 2,
+                            COLD: 1,
+
+                          };
+
+                          return (
+
+                            (
+                              priority[
+                                b.ai_temperature
+                              ] || 0
+                            )
+
+                            -
+
+                            (
+                              priority[
+                                a.ai_temperature
+                              ] || 0
+                            )
+
+                          );
+
+                        }
+                      )
+
+                      .map(
+                        (
+                          lead: any,
+                          index: number
+                        ) => (
+
+                          <Draggable
+
+                            key={
+                              lead.id
+                            }
+
+                            draggableId={
+                              String(
+                                lead.id
+                              )
+                            }
+
+                            index={
+                              index
+                            }
+
+                          >
+
+                            {(provided) => (
+
+                              <div
+
+                                ref={
+                                  provided.innerRef
+                                }
+
+                                {...provided.draggableProps}
+
+                                {...provided.dragHandleProps}
+
+                                className="
+                                  w-full
+                                "
+                              >
+
+                                <LeadCard
+                                  lead={lead}
+                                />
+
+                              </div>
+
+                            )}
+
+                          </Draggable>
+
+                        )
+
+                      )}
+
+                    {
+                      provided.placeholder
+                    }
+
+                  </div>
+
+                </div>
+
+              )}
+
+            </Droppable>
 
           )
 
-        }
+        )}
 
       </div>
 

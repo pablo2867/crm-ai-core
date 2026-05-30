@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-
 import { supabase } from "@/lib/supabase";
-
-import toast, { Toaster }
-from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function RealtimeLeads() {
 
@@ -13,16 +10,13 @@ export default function RealtimeLeads() {
 
     const channel = supabase
       .channel("realtime-leads")
-
       .on(
         "postgres_changes",
-
         {
           event: "INSERT",
           schema: "public",
           table: "leads",
         },
-
         () => {
 
           toast.success(
@@ -33,16 +27,18 @@ export default function RealtimeLeads() {
             "/sounds/notification.mp3"
           );
 
-          audio.play();
+          audio.play().catch(() => {});
 
-          window.location.reload();
         }
       )
-
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+
+      supabase.removeChannel(
+        channel
+      );
+
     };
 
   }, []);
@@ -52,4 +48,5 @@ export default function RealtimeLeads() {
       position="top-right"
     />
   );
+
 }

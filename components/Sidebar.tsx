@@ -15,6 +15,9 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import LogoutButton
+from "@/components/LogoutButton";
+
 const items = [
   {
     label: "Dashboard",
@@ -138,7 +141,9 @@ export default function Sidebar() {
 
       </nav>
 
-      <div className="mt-auto">
+      <div className="mt-auto space-y-4">
+
+        <LogoutButton />
 
         <div
           className="

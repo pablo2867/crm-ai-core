@@ -18,27 +18,67 @@ export default function LoginPage() {
 
     e.preventDefault();
 
-    const { error } =
+    console.log("INTENTANDO LOGIN");
+
+    const result =
       await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+    console.log(
+      "RESULTADO LOGIN:",
+      result
+    );
+
+    const {
+      data,
+      error,
+    } = result;
+
+    console.log(
+      "SESSION:",
+      data?.session
+    );
+
+    console.log(
+      "USER:",
+      data?.user
+    );
+
     if (error) {
 
-      console.log(error);
+      console.error(
+        "ERROR LOGIN:",
+        error
+      );
 
-      alert(error.message);
+      alert(
+        error.message
+      );
 
       return;
 
     }
 
-    router.push("/");
+    console.log(
+      "LOGIN EXITOSO"
+    );
+
+    alert(
+      "LOGIN OK"
+    );
+
+    router.push(
+      "/dashboard"
+    );
+
     router.refresh();
+
   }
 
   return (
+
     <main className="min-h-screen bg-[#09090B] flex items-center justify-center px-6 relative overflow-hidden">
 
       <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl" />
@@ -75,7 +115,9 @@ export default function LoginPage() {
               placeholder="Email"
               value={email}
               onChange={(e) =>
-                setEmail(e.target.value)
+                setEmail(
+                  e.target.value
+                )
               }
               className="w-full bg-[#18181B] border border-zinc-700 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500"
             />
@@ -85,7 +127,9 @@ export default function LoginPage() {
               placeholder="Password"
               value={password}
               onChange={(e) =>
-                setPassword(e.target.value)
+                setPassword(
+                  e.target.value
+                )
               }
               className="w-full bg-[#18181B] border border-zinc-700 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500"
             />
@@ -104,5 +148,7 @@ export default function LoginPage() {
       </div>
 
     </main>
+
   );
+
 }
