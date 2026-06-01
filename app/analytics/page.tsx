@@ -8,8 +8,12 @@ import {
   createClient,
 } from "@/lib/supabase-server";
 
-import AnalyticsChart
-from "@/components/AnalyticsChart";
+import {
+  getDashboardData,
+} from "@/lib/dashboard-data";
+
+import DashboardAnalytics
+from "@/components/dashboard/DashboardAnalytics";
 
 import AIInsights
 from "@/components/AIInsights";
@@ -45,6 +49,11 @@ export default async function AnalyticsPage() {
         user.id
       );
 
+  const {
+    analyticsData,
+  } =
+    await getDashboardData();
+
   const totalLeads =
     leads?.length || 0;
 
@@ -71,14 +80,10 @@ export default async function AnalyticsPage() {
     <main
       className="
         min-h-screen
-
         bg-[#09090B]
-
         text-white
-
         p-6
         md:p-10
-
         mt-16
         lg:mt-0
       "
@@ -99,9 +104,7 @@ export default async function AnalyticsPage() {
           className="
             text-4xl
             md:text-6xl
-
             font-black
-
             mt-2
           "
         >
@@ -116,7 +119,6 @@ export default async function AnalyticsPage() {
           grid-cols-1
           md:grid-cols-2
           xl:grid-cols-4
-
           gap-6
         "
       >
@@ -124,21 +126,14 @@ export default async function AnalyticsPage() {
         <div
           className="
             bg-[#111113]
-
             p-6
-
             rounded-3xl
-
             border
             border-zinc-800
           "
         >
 
-          <p
-            className="
-              text-zinc-400
-            "
-          >
+          <p className="text-zinc-400">
             Total Leads
           </p>
 
@@ -146,7 +141,6 @@ export default async function AnalyticsPage() {
             className="
               text-5xl
               font-black
-
               mt-4
             "
           >
@@ -158,21 +152,14 @@ export default async function AnalyticsPage() {
         <div
           className="
             bg-red-500/10
-
             p-6
-
             rounded-3xl
-
             border
             border-red-500/20
           "
         >
 
-          <p
-            className="
-              text-red-400
-            "
-          >
+          <p className="text-red-400">
             HOT Leads
           </p>
 
@@ -180,7 +167,6 @@ export default async function AnalyticsPage() {
             className="
               text-5xl
               font-black
-
               mt-4
             "
           >
@@ -192,21 +178,14 @@ export default async function AnalyticsPage() {
         <div
           className="
             bg-yellow-500/10
-
             p-6
-
             rounded-3xl
-
             border
             border-yellow-500/20
           "
         >
 
-          <p
-            className="
-              text-yellow-400
-            "
-          >
+          <p className="text-yellow-400">
             WARM Leads
           </p>
 
@@ -214,7 +193,6 @@ export default async function AnalyticsPage() {
             className="
               text-5xl
               font-black
-
               mt-4
             "
           >
@@ -226,21 +204,14 @@ export default async function AnalyticsPage() {
         <div
           className="
             bg-blue-500/10
-
             p-6
-
             rounded-3xl
-
             border
             border-blue-500/20
           "
         >
 
-          <p
-            className="
-              text-blue-400
-            "
-          >
+          <p className="text-blue-400">
             COLD Leads
           </p>
 
@@ -248,7 +219,6 @@ export default async function AnalyticsPage() {
             className="
               text-5xl
               font-black
-
               mt-4
             "
           >
@@ -259,7 +229,13 @@ export default async function AnalyticsPage() {
 
       </div>
 
-      <AnalyticsChart />
+      <div className="mt-10">
+
+        <DashboardAnalytics
+          data={analyticsData}
+        />
+
+      </div>
 
       <AIInsights />
 

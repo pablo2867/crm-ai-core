@@ -1,33 +1,59 @@
-export default function AIInsights() {
+interface Props {
+  totalLeads: number;
+  hotLeads: number;
+  warmLeads: number;
+  cerrados: number;
+}
+
+export default function AIInsights({
+  totalLeads,
+  hotLeads,
+  warmLeads,
+  cerrados,
+}: Props) {
+
+  const conversionRate =
+    totalLeads > 0
+      ? Math.round(
+          (cerrados / totalLeads) * 100
+        )
+      : 0;
+
+  const pipelineHealth =
+    conversionRate >= 40
+      ? "Excelente"
+      : conversionRate >= 20
+      ? "Bueno"
+      : "Atención";
 
   const insights = [
 
     {
       title:
-        "HOT leads aumentaron",
+        "HOT Leads detectados",
       value:
-        "+24%",
+        hotLeads.toString(),
     },
 
     {
       title:
-        "Leads olvidados detectados",
+        "Leads en seguimiento",
       value:
-        "3",
+        warmLeads.toString(),
     },
 
     {
       title:
-        "Probabilidad de cierre alta",
+        "Probabilidad de cierre",
       value:
-        "78%",
+        `${conversionRate}%`,
     },
 
     {
       title:
-        "Pipeline saludable",
+        "Estado del pipeline",
       value:
-        "Excelente",
+        pipelineHealth,
     },
 
   ];
@@ -37,14 +63,10 @@ export default function AIInsights() {
     <div
       className="
         mt-10
-
         bg-[#111113]
-
         border
         border-zinc-800
-
         rounded-3xl
-
         p-6
       "
     >
@@ -64,9 +86,7 @@ export default function AIInsights() {
           className="
             text-3xl
             font-black
-
             text-white
-
             mt-2
           "
         >
@@ -81,7 +101,6 @@ export default function AIInsights() {
           grid-cols-1
           md:grid-cols-2
           xl:grid-cols-4
-
           gap-6
         "
       >
@@ -98,12 +117,9 @@ export default function AIInsights() {
                 key={index}
                 className="
                   bg-[#18181B]
-
                   border
                   border-zinc-800
-
                   rounded-2xl
-
                   p-5
                 "
               >
@@ -121,9 +137,7 @@ export default function AIInsights() {
                   className="
                     text-3xl
                     font-black
-
                     text-white
-
                     mt-3
                   "
                 >

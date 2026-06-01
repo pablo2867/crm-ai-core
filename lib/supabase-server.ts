@@ -30,33 +30,6 @@ export async function createClient() {
 
         },
 
-        set(
-          name: string,
-          value: string,
-          options: any
-        ) {
-
-          cookieStore.set({
-            name,
-            value,
-            ...options,
-          });
-
-        },
-
-        remove(
-          name: string,
-          options: any
-        ) {
-
-          cookieStore.set({
-            name,
-            value: "",
-            ...options,
-          });
-
-        },
-
       },
 
     }
