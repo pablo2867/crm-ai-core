@@ -1,7 +1,9 @@
-
 import {
   supabaseAdmin,
 } from "@/lib/supabase-admin";
+
+import TaskActions
+from "@/components/TaskActions";
 
 export const dynamic =
   "force-dynamic";
@@ -209,6 +211,10 @@ export default async function TasksPage() {
                   </div>
 
                 </div>
+
+                <TaskActions
+                  taskId={task.id}
+                />
 
               </div>
 
