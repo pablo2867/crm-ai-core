@@ -1,0 +1,207 @@
+﻿"use client";
+
+import { useEffect, useState } from "react";
+
+interface Activity {
+  id: string;
+  workflow: string;
+  skill: string;
+  status: "success" | "error" | "running";
+  durationMs?: number;
+}
+
+export default function AIActivityTimeline() {
+
+  const [activities, setActivities] =
+    useState<Activity[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  async function loadActivities() {
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/ai-activity",
+          {
+            cache: "no-store",
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (data.success) {
+
+        setActivities(
+          (data.activities ?? []).slice(0, 10)
+        );
+
+      }
+
+    } catch (error) {
+
+      console.error(error);
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  }
+
+  useEffect(() => {
+    const initialTimer = setTimeout(() => {
+      void loadActivities();
+    }, 0);
+
+    const interval = setInterval(
+      loadActivities,
+      5000
+    );
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, []);
+
+  return (
+
+    <div
+      className="
+        rounded-2xl
+        border
+        border-zinc-800
+        bg-[#111113]
+        p-6
+      "
+    >
+
+      <div className="flex items-center justify-between">
+
+        <div>
+
+          <h2 className="text-2xl font-black">
+            AI Activity
+          </h2>
+
+          <p className="text-zinc-500 text-sm mt-1">
+            Ãšltimos workflows ejecutados
+          </p>
+
+        </div>
+
+        <span
+          className="
+            rounded-full
+            bg-green-500/20
+            px-3
+            py-1
+            text-xs
+            text-green-400
+            font-semibold
+          "
+        >
+          LIVE
+        </span>
+
+      </div>
+
+      <div
+        className="
+          mt-6
+          max-h-[420px]
+          overflow-y-auto
+          space-y-3
+        "
+      >
+
+        {loading && (
+
+          <div className="text-zinc-500">
+
+            Cargando actividad...
+
+          </div>
+
+        )}
+
+        {!loading &&
+          activities.length === 0 && (
+
+            <div className="text-zinc-500">
+
+              No hay actividad registrada.
+
+            </div>
+
+        )}
+
+        {activities.map((activity) => (
+
+          <div
+            key={activity.id}
+            className="
+              rounded-xl
+              border
+              border-zinc-800
+              bg-[#18181B]
+              p-4
+            "
+          >
+
+            <div className="flex items-center justify-between">
+
+              <div className="flex items-center gap-3">
+
+                <span className="text-xl">
+
+                  {activity.status === "success"
+                    ? "âœ…"
+                    : activity.status === "running"
+                    ? "ðŸŸ¡"
+                    : "âŒ"}
+
+                </span>
+
+                <div>
+
+                  <div className="font-semibold text-white">
+
+                    {activity.workflow}
+
+                  </div>
+
+                  <div className="text-sm text-zinc-400">
+
+                    Skill: {activity.skill}
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              <div className="text-xs text-zinc-500">
+
+                {activity.durationMs ?? 0} ms
+
+              </div>
+
+            </div>
+
+          </div>
+
+        ))}
+
+      </div>
+
+    </div>
+
+  );
+
+}
