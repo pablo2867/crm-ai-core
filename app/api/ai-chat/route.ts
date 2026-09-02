@@ -8,6 +8,10 @@ import {
   supabaseAdmin,
 } from "@/lib/supabase-admin";
 
+import {
+  aiGateway,
+} from "@/platform/ai/gateway";
+
 export async function POST(
   req: Request
 ) {
@@ -36,16 +40,26 @@ export async function POST(
       await req.json();
 
     const rawMessage =
-      body.message || "";
+      typeof body.message === "string"
+        ? body.message
+        : "";
 
     const message =
       rawMessage
-
         .toLowerCase()
-
         .replace(/[¿?.,]/g, "")
-
         .trim();
+
+    if (!message) {
+
+      return NextResponse.json({
+
+        text:
+          "Escribe una pregunta para el AI Assistant.",
+
+      });
+
+    }
 
     /*
     ---------------------------------------
@@ -90,9 +104,7 @@ export async function POST(
         .limit(10);
 
     const simplifiedLeads =
-
       leads?.map(
-
         lead => ({
 
           name:
@@ -123,7 +135,6 @@ export async function POST(
             lead.ai_priority || "",
 
         })
-
       ) || [];
 
     /*
@@ -133,172 +144,113 @@ export async function POST(
     */
 
     const rankedLeads =
-
       [...simplifiedLeads]
-
         .sort(
-
           (a, b) => {
 
             const scoreA =
-
               (a.score || 0) +
-
               (a.probability || 0) +
-
               (a.revenue || 0) / 1000 +
-
               (
-
                 a.temperature === "HOT"
-
                   ? 50
-
                   : a.temperature === "WARM"
-
                     ? 20
-
                     : 0
-
               ) +
-
               (
-
                 a.status === "Cerrado"
-
                   ? -100
-
                   : 0
-
               );
 
             const scoreB =
-
               (b.score || 0) +
-
               (b.probability || 0) +
-
               (b.revenue || 0) / 1000 +
-
               (
-
                 b.temperature === "HOT"
-
                   ? 50
-
                   : b.temperature === "WARM"
-
                     ? 20
-
                     : 0
-
               ) +
-
               (
-
                 b.status === "Cerrado"
-
                   ? -100
-
                   : 0
-
               );
 
             return scoreB - scoreA;
 
           }
-
         );
 
     const bestLead =
-
       rankedLeads.length > 0
-
         ? rankedLeads[0]
-
         : null;
 
     const detectedLead =
-
       simplifiedLeads.find(
-
         lead =>
-
           message.includes(
-
             lead.name.toLowerCase()
-
           )
-
       ) || null;
 
     /*
     ---------------------------------------
-    AI Server
+    AI Gateway
     ---------------------------------------
     */
 
-    const controller =
-      new AbortController();
+    const aiResponse =
+      await aiGateway.generate({
 
-    const timeout =
-      setTimeout(
+        prompt: JSON.stringify({
 
-        () => controller.abort(),
+          instruction:
+            "Responde como CRM AI Assistant. Usa solamente el contexto proporcionado.",
 
-        15000
+          message:
+            rawMessage,
 
-      );
+          leads:
+            rankedLeads,
 
-    const response =
-      await fetch(
+          bestLead,
 
-        "http://127.0.0.1:4000/chat",
+          detectedLead,
 
-        {
+        }),
 
-          method:
-            "POST",
+        temperature:
+          0.1,
 
-          headers: {
+        numPredict:
+          120,
 
-            "Content-Type":
-              "application/json",
+      });
 
-          },
+    /*
+    ---------------------------------------
+    AI Failure
+    ---------------------------------------
+    */
 
-          signal:
-            controller.signal,
+    if (!aiResponse.success) {
 
-          body:
-            JSON.stringify({
+      return NextResponse.json({
 
-              message,
+        text:
+          aiResponse.error ||
+          "No fue posible obtener una respuesta de IA.",
 
-              leads:
+      });
 
-                bestLead
-
-                  ? [bestLead]
-
-                  : [],
-
-              bestLead,
-
-              detectedLead,
-
-            }),
-
-        }
-
-      );
-
-    clearTimeout(
-      timeout
-    );
-
-    const data =
-      await response.json();
+    }
 
     /*
     ---------------------------------------
@@ -333,12 +285,16 @@ export async function POST(
 
       ]);
 
+    /*
+    ---------------------------------------
+    Response
+    ---------------------------------------
+    */
+
     return NextResponse.json({
 
       text:
-
-        data?.text ||
-
+        aiResponse.text ||
         "Sin respuesta IA",
 
     });
@@ -348,11 +304,8 @@ export async function POST(
   catch (error) {
 
     console.error(
-
       "AI CHAT ERROR:",
-
       error
-
     );
 
     return NextResponse.json({
