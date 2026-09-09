@@ -1,4 +1,4 @@
-import RuntimeVisualizer from "@/components/runtime/RuntimeVisualizer";
+﻿import RuntimeVisualizer from "@/components/runtime/RuntimeVisualizer";
 
 import type {
   CopilotMessage,

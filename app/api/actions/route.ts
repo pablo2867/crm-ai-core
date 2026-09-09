@@ -67,7 +67,7 @@ export async function POST(
         success: false,
 
         error:
-          "Error ejecutando acciÃ³n.",
+          "Error ejecutando acción.",
 
       },
 
@@ -82,5 +82,6 @@ export async function POST(
   }
 
 }
+
 
 

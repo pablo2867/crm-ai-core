@@ -1,4 +1,5 @@
-﻿import {
+﻿import { Permissions } from "@/platform/auth/permissions";
+import {
   NextResponse,
 } from "next/server";
 
@@ -21,6 +22,8 @@ export async function POST(
 
     const tenant =
       await authEngine.getTenant();
+
+    await authEngine.requirePermission(Permissions.CRM_LEADS_UPDATE);
 
     const body =
       await request.json();
@@ -222,3 +225,4 @@ export async function POST(
   }
 
 }
+

@@ -97,7 +97,7 @@ export default function AIStatusCard({
           </span>
 
           <span className="text-green-500 font-bold">
-            â— Online
+            ● Online
           </span>
 
         </div>
@@ -109,3 +109,4 @@ export default function AIStatusCard({
   );
 
 }
+

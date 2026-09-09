@@ -238,7 +238,7 @@ export default async function LeadsPage({
         >
 
           <div className="text-7xl mb-6">
-            ðŸ“­
+            📭
           </div>
 
           <h2
@@ -248,7 +248,7 @@ export default async function LeadsPage({
               text-white
             "
           >
-            No hay leads todavÃ­a
+            No hay leads todavía
           </h2>
 
           <p
@@ -269,5 +269,6 @@ export default async function LeadsPage({
   );
 
 }
+
 
 

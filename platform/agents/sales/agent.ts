@@ -1,4 +1,4 @@
-﻿import {
+import {
   salesPlanner,
 } from "./planner";
 
@@ -124,10 +124,14 @@ export class SalesAgent {
       await salesMemory.add(
         request.userId,
         request.message,
+        request.organizationId,
+        request.workspaceId,
       );
 
       await executiveMemoryEngine.save({
         userId: request.userId,
+        organizationId: request.organizationId,
+        workspaceId: request.workspaceId,
         workflow: "sales-agent",
         skill: "request",
         summary: request.message,
@@ -192,6 +196,12 @@ export class SalesAgent {
       await executiveMemoryEngine.save({
         userId: request.userId,
 
+        organizationId:
+          request.organizationId,
+
+        workspaceId:
+          request.workspaceId,
+
         workflow:
           plan.workflow.id,
 
@@ -201,7 +211,7 @@ export class SalesAgent {
         recommendation:
           workflow.success
             ? "Workflow completado correctamente."
-            : "Revisar la ejecución del workflow.",
+            : "Revisar la ejecuci�n del workflow.",
 
         priority:
           workflow.success
@@ -238,6 +248,8 @@ export class SalesAgent {
 
 export const salesAgent =
   new SalesAgent();
+
+
 
 
 

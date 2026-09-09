@@ -1,4 +1,6 @@
-﻿import { NextResponse } from "next/server";
+﻿import { authEngine } from "@/platform/auth";
+import { Permissions } from "@/platform/auth/permissions";
+import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -29,13 +31,16 @@ export async function GET() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    
+    await authEngine.requirePermission(Permissions.BILLING_VIEW);
+if (!user) {
       return NextResponse.json(
         {
           success: false,
           step: "AUTH",
           error: "UNAUTHORIZED",
-        },
+        }
+,
         { status: 401 }
       );
     }
@@ -113,13 +118,16 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    
+    await authEngine.requirePermission(Permissions.BILLING_MANAGE);
+if (!user) {
       return NextResponse.json(
         {
           success: false,
           step: "AUTH",
           error: "UNAUTHORIZED",
-        },
+        }
+,
         { status: 401 }
       );
     }
@@ -128,10 +136,15 @@ export async function POST(request: Request) {
 
     const plan = body?.plan as PlanId;
     const cardTokenId = body?.cardTokenId;
+    const configuredTestPayerEmail =
+      process.env.MERCADOPAGO_TEST_PAYER_EMAIL?.trim();
+
     const payerEmail =
-      typeof body?.payerEmail === "string"
+      configuredTestPayerEmail ||
+      user.email?.trim() ||
+      (typeof body?.payerEmail === "string"
         ? body.payerEmail.trim()
-        : user.email ?? "";
+        : "");
 
     if (!plan || !(plan in PLAN_CONFIG)) {
       return NextResponse.json(
@@ -273,3 +286,7 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
+
+

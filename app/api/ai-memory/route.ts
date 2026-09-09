@@ -1,4 +1,5 @@
-﻿import {
+﻿import { Permissions } from "@/platform/auth/permissions";
+import {
   NextResponse,
 } from "next/server";
 
@@ -25,6 +26,8 @@ export async function GET() {
 
     const tenant =
       await authEngine.getTenant();
+
+    await authEngine.requirePermission(Permissions.AI_MEMORY_VIEW);
 
     /*
     ---------------------------------------
@@ -91,7 +94,7 @@ export async function GET() {
 
       /*
       ---------------------------------------
-      Ãšltima actividad
+      Última actividad
       ---------------------------------------
       */
 
@@ -129,7 +132,7 @@ export async function GET() {
 
       /*
       ---------------------------------------
-      Ãšltima nota
+      Última nota
       ---------------------------------------
       */
 
@@ -249,7 +252,7 @@ export async function GET() {
               "AI MEMORY",
 
             description:
-              "AI actualizÃ³ memoria contextual del lead.",
+              "AI actualizó memoria contextual del lead.",
 
           },
 
@@ -295,6 +298,8 @@ export async function GET() {
   }
 
 }
+
+
 
 
 

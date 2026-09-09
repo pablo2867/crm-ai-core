@@ -1,10 +1,13 @@
-import {
+﻿import {
   supabaseAdmin,
 } from "@/lib/supabase-admin";
 
 import {
   analyticsService,
 } from "@/platform/services/analytics";
+import {
+  tenantEngine,
+} from "@/platform/tenant";
 
 export interface ExecutiveRepositoryData {
 
@@ -24,7 +27,12 @@ export class ExecutiveRepository {
     userId: string
   ): Promise<ExecutiveRepositoryData> {
 
-    const [
+    
+    const tenant =
+      await tenantEngine.getTenant(
+        userId
+      );
+const [
 
       leadsResult,
 
@@ -41,6 +49,13 @@ export class ExecutiveRepository {
         .eq(
           "user_id",
           userId
+        )        .eq(
+          "organization_id",
+          tenant.organizationId
+        )
+        .eq(
+          "workspace_id",
+          tenant.workspaceId
         ),
 
       analyticsService.getDashboard(
@@ -64,3 +79,4 @@ export class ExecutiveRepository {
 
 export const executiveRepository =
   new ExecutiveRepository();
+

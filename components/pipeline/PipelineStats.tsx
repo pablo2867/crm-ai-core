@@ -1,4 +1,4 @@
-export default function PipelineStats({
+﻿export default function PipelineStats({
   hotLeads,
   remindersPending,
   avgScore,

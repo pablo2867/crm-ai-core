@@ -137,7 +137,7 @@ export default function AIActivityTimeline() {
           </h2>
 
           <p className="text-zinc-500 text-sm mt-1">
-            Ãšltimos workflows ejecutados
+            Últimos workflows ejecutados
           </p>
 
         </div>
@@ -208,10 +208,10 @@ export default function AIActivityTimeline() {
                 <span className="text-xl">
 
                   {activity.status === "success"
-                    ? "âœ…"
+                    ? "✅"
                     : activity.status === "running"
-                    ? "ðŸŸ¡"
-                    : "âŒ"}
+                    ? "🟡"
+                    : "❌"}
 
                 </span>
 
@@ -252,4 +252,5 @@ export default function AIActivityTimeline() {
   );
 
 }
+
 

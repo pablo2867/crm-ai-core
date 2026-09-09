@@ -1,3 +1,4 @@
+﻿import { Permissions } from "@/platform/auth/permissions";
 import { NextResponse } from "next/server";
 
 import {
@@ -29,6 +30,8 @@ export async function POST(
 
     const tenant =
       await authEngine.getTenant();
+
+    await authEngine.requirePermission(Permissions.AI_EXECUTE);
 
     /*
     ---------------------------------------
@@ -318,3 +321,4 @@ export async function POST(
   }
 
 }
+

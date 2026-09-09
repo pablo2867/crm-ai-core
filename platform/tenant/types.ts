@@ -1,3 +1,11 @@
+﻿import type {
+  Role,
+} from "@/platform/auth/roles";
+
+import type {
+  Permission,
+} from "@/platform/auth/permissions";
+
 export interface TenantContext {
 
   organizationId: string;
@@ -6,9 +14,9 @@ export interface TenantContext {
 
   userId: string;
 
-  role: string;
+  role: Role;
 
-  permissions: string[];
+  permissions: readonly Permission[];
 
 }
 

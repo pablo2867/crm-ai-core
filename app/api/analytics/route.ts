@@ -1,3 +1,5 @@
+﻿import { Permissions } from "@/platform/auth/permissions";
+import { authEngine } from "@/platform/auth";
 import {
   NextResponse,
 } from "next/server";
@@ -27,6 +29,8 @@ export async function GET() {
 
     } =
       await supabase.auth.getUser();
+
+    await authEngine.requirePermission(Permissions.CRM_ANALYTICS_VIEW);
 
     if (!user) {
 
@@ -111,3 +115,4 @@ export async function GET() {
   }
 
 }
+

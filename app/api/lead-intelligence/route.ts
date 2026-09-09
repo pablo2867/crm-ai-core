@@ -1,4 +1,5 @@
-﻿import {
+﻿import { Permissions } from "@/platform/auth/permissions";
+import {
   NextResponse,
 } from "next/server";
 
@@ -25,6 +26,8 @@ export async function GET() {
 
     const tenant =
       await authEngine.getTenant();
+
+    await authEngine.requirePermission(Permissions.AI_EXECUTE);
 
     const userId =
       user.id;
@@ -217,4 +220,5 @@ export async function GET() {
     );
   }
 }
+
 

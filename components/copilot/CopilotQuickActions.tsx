@@ -1,4 +1,4 @@
-interface Props {
+﻿interface Props {
   askCopilot: (
     question: string
   ) => void;

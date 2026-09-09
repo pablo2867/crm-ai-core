@@ -1,5 +1,6 @@
 ﻿import Link from "next/link";
 import BillingCheckout from "@/components/billing/BillingCheckout";
+import { createClient } from "@/lib/supabase-server";
 
 const plans = [
   {
@@ -57,7 +58,9 @@ const plans = [
   },
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   return (
     <main className="min-h-screen bg-[#070708] text-white">
       <header className="border-b border-white/10">
@@ -130,7 +133,7 @@ export default function PricingPage() {
                 </span>
 
                 <span className="text-zinc-500">
-                  {" "}USD / mes
+                  {" "}MXN / mes
                 </span>
               </div>
 
@@ -199,3 +202,6 @@ export default function PricingPage() {
     </main>
   );
 }
+
+
+

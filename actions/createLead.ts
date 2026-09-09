@@ -1,9 +1,7 @@
 "use server";
 
-import {
-  supabaseAdmin,
-} from "@/lib/supabase-admin";
-
+import { leadService } from "@/platform/services/leads";
+import { tenantEngine } from "@/platform/tenant";
 import {
   createClient,
 } from "@/lib/supabase-server";
@@ -107,73 +105,31 @@ export async function createLead(
 
     const ai_followup =
       `Hola ${name}, seguimos disponibles para ayudarte cuando gustes.`;
+    const tenant = await tenantEngine.getTenant(user.id);
 
-    const {
-      error,
-    } =
-      await supabaseAdmin
-
-        .from("leads")
-
-        .insert([
-
-          {
-
-            name,
-            company,
-            email,
-            status,
-
-            user_id:
-              user.id,
-
-            ai_score,
-
-            ai_temperature,
-
-            ai_analysis,
-
-            ai_followup,
-
-            ai_probability:
-              50,
-
-            ai_priority:
-              ai_temperature === "HOT"
-                ? "Alta"
-                : ai_temperature === "WARM"
-                ? "Media"
-                : "Baja",
-
-            close_probability:
-              50,
-
-            estimated_revenue:
-              0,
-
-            deal_value:
-              0,
-
-          },
-
-        ]);
-
-    console.log(
-      "CREATE LEAD ERROR:",
-      error
-    );
-
-    if (error) {
+    try {
+      await leadService.createLead({
+        name,
+        company,
+        email,
+        userId: user.id,
+        organizationId: tenant.organizationId,
+        workspaceId: tenant.workspaceId,
+        status,
+      });
+    } catch (error) {
+      console.log(
+        "CREATE LEAD ERROR:",
+        error
+      );
 
       return {
-
         success: false,
-
         message:
-          error.message,
-
+          error instanceof Error
+            ? error.message
+            : "Error interno",
       };
-
     }
 
     revalidatePath(

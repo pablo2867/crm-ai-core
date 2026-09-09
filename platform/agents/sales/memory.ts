@@ -20,7 +20,11 @@ export class SalesAgentMemory {
 
     userId: string,
 
-    message: string
+    message: string,
+
+    organizationId?: string,
+
+    workspaceId?: string
 
   ) {
 
@@ -45,6 +49,10 @@ export class SalesAgentMemory {
       await memoryEngine.remember({
 
         userId,
+
+        organizationId,
+
+        workspaceId,
 
         type:
           "sales-agent",

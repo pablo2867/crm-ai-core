@@ -12,7 +12,9 @@ export async function recallMemories(
 
   let memories =
     await getMemories(
-      request.userId
+      request.userId,
+      request.organizationId,
+      request.workspaceId
     );
 
   if (request.type) {
@@ -29,15 +31,9 @@ export async function recallMemories(
 
   }
 
-  return memories
-
-    .slice()
-
-    .reverse()
-
-    .slice(
-      0,
-      request.limit ?? 10
-    );
+  return memories.slice(
+    0,
+    request.limit ?? 10
+  );
 
 }

@@ -43,7 +43,7 @@ export default function DashboardChart({
         </h3>
 
         <p className="text-zinc-500 mt-2">
-          AÃºn no existen leads para generar analytics.
+          Aún no existen leads para generar analytics.
         </p>
       </div>
     );
@@ -168,7 +168,7 @@ export default function DashboardChart({
           "
         >
           <h3 className="text-lg font-bold mb-6 text-white">
-            DistribuciÃ³n Pipeline
+            Distribución Pipeline
           </h3>
 
           <div className="w-full h-[260px]">
@@ -215,7 +215,7 @@ export default function DashboardChart({
         "
       >
         <h3 className="text-lg font-bold mb-6 text-white">
-          Tendencia de conversiÃ³n
+          Tendencia de conversión
         </h3>
 
         <div className="w-full h-[320px]">
@@ -279,3 +279,4 @@ export default function DashboardChart({
 
 
                
+

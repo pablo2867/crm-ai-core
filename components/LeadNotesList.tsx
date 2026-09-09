@@ -1,4 +1,4 @@
-export default function LeadNotesList({
+﻿export default function LeadNotesList({
   notes,
 }: {
   notes: any[];

@@ -295,6 +295,7 @@ Devuelve únicamente el mensaje.
 
   const response =
     await aiGateway.generate({
+      model: process.env.AI_FOLLOWUP_MODEL ?? "tinyllama:latest",
 
       prompt,
 
@@ -332,3 +333,5 @@ Devuelve únicamente el mensaje.
   );
 
 }
+
+

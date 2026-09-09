@@ -1,6 +1,11 @@
+﻿import { Permissions } from "@/platform/auth/permissions";
 import {
   NextResponse,
 } from "next/server";
+
+import {
+  authEngine,
+} from "@/platform/auth";
 
 import {
   aiGateway,
@@ -9,8 +14,15 @@ import {
 export async function POST(
   request: Request
 ) {
-
   try {
+
+    const user =
+      await authEngine.getUser();
+
+    const tenant =
+      await authEngine.getTenant();
+
+    await authEngine.requirePermission(Permissions.AI_EXECUTE);
 
     const {
       lead,
@@ -45,44 +57,29 @@ REGLAS:
 
     const response =
       await aiGateway.generate({
-
         prompt,
-
         temperature: 0,
-
         numPredict: 50,
-
       });
 
     if (!response.success) {
-
       return NextResponse.json({
-
         success: false,
-
         coach:
           "No fue posible generar la recomendación.",
-
         provider:
           response.provider,
-
         model:
           response.model,
-
       });
-
     }
 
     return NextResponse.json({
-
       success: true,
-
       coach:
         response.text,
-
       provider:
         response.provider,
-
       model:
         response.model,
 
@@ -95,15 +92,17 @@ REGLAS:
       error
     );
 
-    return NextResponse.json({
-
-      success: false,
-
-      coach:
-        "Error generando recomendación.",
-
-    });
-
+    return NextResponse.json(
+      {
+        success: false,
+        coach:
+          "Error generando recomendación.",
+      },
+      {
+        status: 500,
+      }
+    );
   }
-
 }
+
+

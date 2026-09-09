@@ -1,4 +1,5 @@
-﻿import {
+﻿import { Permissions } from "@/platform/auth/permissions";
+import {
   NextResponse,
 } from "next/server";
 
@@ -19,6 +20,8 @@ export async function POST(
     // =======================================
 
     await authEngine.getUser();
+
+    await authEngine.requirePermission(Permissions.AI_EXECUTE);
 
     // =======================================
     // REQUEST
@@ -130,5 +133,6 @@ Genera únicamente el mensaje.
     );
   }
 }
+
 
 

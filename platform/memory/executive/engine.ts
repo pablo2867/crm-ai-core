@@ -31,21 +31,29 @@ export class ExecutiveMemoryEngine {
   }
 
   async latest(
-    userId: string
+    userId: string,
+    organizationId?: string,
+    workspaceId?: string
   ): Promise<ExecutiveMemoryRecord | null> {
 
     return executiveMemoryStore.latest(
-      userId
+      userId,
+      organizationId,
+      workspaceId
     );
 
   }
 
   async clear(
-    userId: string
+    userId: string,
+    organizationId?: string,
+    workspaceId?: string
   ): Promise<void> {
 
     return executiveMemoryStore.clear(
-      userId
+      userId,
+      organizationId,
+      workspaceId
     );
 
   }

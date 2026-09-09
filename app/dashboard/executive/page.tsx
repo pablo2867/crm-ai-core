@@ -21,10 +21,6 @@ import {
   executiveDashboardService,
 } from "@/platform/services/executive";
 
-import {
-  executiveEngine,
-} from "@/platform/executive";
-
 export default async function ExecutiveDashboard() {
 
   const supabase =
@@ -40,6 +36,7 @@ export default async function ExecutiveDashboard() {
     return null;
 
   }
+  const tenant = await authEngine.getTenant();
 
   /*
   ---------------------------------------
@@ -49,30 +46,32 @@ export default async function ExecutiveDashboard() {
 
   const executive =
     await executiveDashboardService.get(
-      user.id
+      user.id,
+      {
+        organizationId:
+          tenant.organizationId,
+        workspaceId:
+          tenant.workspaceId,
+      }
     );
 
   /*
   ---------------------------------------
-  Executive Intelligence Engine (NEW)
+  Executive Intelligence
   ---------------------------------------
   */
 
   const executiveReport =
-    await executiveEngine.execute(
-      user.id
-    );
+    executive.executiveSummary;
 
   /*
   ---------------------------------------
-  Legacy Dashboard Data
+  Dashboard Data
   ---------------------------------------
   */
 
   const legacyDashboard =
-    await getDashboardData(
-      user.id
-    );
+    executive.dashboardData;
 
   const {
 
@@ -121,6 +120,14 @@ export default async function ExecutiveDashboard() {
       .eq(
         "user_id",
         user.id
+      )
+      .eq(
+        "organization_id",
+        tenant.organizationId
+      )
+      .eq(
+        "workspace_id",
+        tenant.workspaceId
       )
       .order(
         "close_probability",
@@ -266,7 +273,7 @@ export default async function ExecutiveDashboard() {
         >
 
           <p className="text-blue-400">
-            ConversiÃ³n
+            Conversión
           </p>
 
           <h2 className="text-5xl font-black mt-4">
@@ -394,4 +401,8 @@ export default async function ExecutiveDashboard() {
   );
 
 }
+
+
+
+
 

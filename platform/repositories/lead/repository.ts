@@ -1,4 +1,4 @@
-import {
+﻿import {
   supabaseAdmin,
 } from "@/lib/supabase-admin";
 
@@ -8,6 +8,7 @@ import type {
   UpdateLeadStatusData,
   FindLeadData,
   SearchLeadData,
+  DeleteLeadData,
 } from "./types";
 
 export class LeadRepository {
@@ -18,6 +19,25 @@ export class LeadRepository {
   ---------------------------------------
   */
 
+  async countByTenant(
+    organizationId: string,
+    workspaceId: string,
+  ): Promise<number> {
+    const { count, error } = await supabaseAdmin
+      .from("leads")
+      .select("id", {
+        count: "exact",
+        head: true,
+      })
+      .eq("organization_id", organizationId)
+      .eq("workspace_id", workspaceId);
+
+    if (error) {
+      throw error;
+    }
+
+    return count ?? 0;
+  }
   async create(
     lead: CreateLeadData,
   ) {
@@ -30,9 +50,7 @@ export class LeadRepository {
       .from("leads")
 
       .insert([
-
         {
-
           name:
             lead.name,
 
@@ -80,9 +98,7 @@ export class LeadRepository {
 
           close_probability:
             lead.closeProbability,
-
         },
-
       ])
 
       .select()
@@ -90,13 +106,10 @@ export class LeadRepository {
       .single();
 
     if (error) {
-
       throw error;
-
     }
 
     return data;
-
   }
 
   /*
@@ -116,27 +129,34 @@ export class LeadRepository {
       .from("leads")
 
       .update(
-        request.values
+        request.values,
       )
 
       .eq(
         "id",
-        request.id
+        request.id,
       )
 
       .eq(
         "user_id",
-        request.userId
+        request.userId,
+      )
+
+      .eq(
+        "organization_id",
+        request.organizationId,
+      )
+
+      .eq(
+        "workspace_id",
+        request.workspaceId,
       );
 
     if (error) {
-
       throw error;
-
     }
 
     return true;
-
   }
 
   /*
@@ -156,32 +176,81 @@ export class LeadRepository {
       .from("leads")
 
       .update({
-
         pipeline_stage:
           request.pipelineStage,
-
       })
 
       .eq(
         "id",
-        request.id
+        request.id,
       )
 
       .eq(
         "user_id",
-        request.userId
+        request.userId,
+      )
+
+      .eq(
+        "organization_id",
+        request.organizationId,
+      )
+
+      .eq(
+        "workspace_id",
+        request.workspaceId,
       );
 
     if (error) {
-
       throw error;
-
     }
 
     return true;
-
   }
 
+  /*
+  ---------------------------------------
+  Delete Lead
+  ---------------------------------------
+  */
+
+  async delete(
+    request: DeleteLeadData,
+  ) {
+
+    const {
+      error,
+    } = await supabaseAdmin
+
+      .from("leads")
+
+      .delete()
+
+      .eq(
+        "id",
+        request.id,
+      )
+
+      .eq(
+        "user_id",
+        request.userId,
+      )
+
+      .eq(
+        "organization_id",
+        request.organizationId,
+      )
+
+      .eq(
+        "workspace_id",
+        request.workspaceId,
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  }
   /*
   ---------------------------------------
   Find Lead By Id
@@ -203,24 +272,31 @@ export class LeadRepository {
 
       .eq(
         "id",
-        request.id
+        request.id,
       )
 
       .eq(
         "user_id",
-        request.userId
+        request.userId,
+      )
+
+      .eq(
+        "organization_id",
+        request.organizationId,
+      )
+
+      .eq(
+        "workspace_id",
+        request.workspaceId,
       )
 
       .single();
 
     if (error) {
-
       throw error;
-
     }
 
     return data;
-
   }
 
   /*
@@ -239,41 +315,38 @@ export class LeadRepository {
         .from("leads")
 
         .select(`
-
           id,
-
           user_id,
-
           name,
-
           company,
-
           email,
-
           ai_score,
-
           ai_temperature,
-
           close_probability,
-
           estimated_revenue,
-
-          pipeline_stage,
-
-          reminders
-
+          pipeline_stage
         `)
 
         .eq(
           "user_id",
-          request.userId
+          request.userId,
+        )
+
+        .eq(
+          "organization_id",
+          request.organizationId,
+        )
+
+        .eq(
+          "workspace_id",
+          request.workspaceId,
         );
 
     if (request.status) {
 
       query = query.eq(
         "status",
-        request.status
+        request.status,
       );
 
     }
@@ -282,7 +355,7 @@ export class LeadRepository {
 
       query = query.eq(
         "pipeline_stage",
-        request.pipelineStage
+        request.pipelineStage,
       );
 
     }
@@ -291,7 +364,7 @@ export class LeadRepository {
 
       query = query.eq(
         "ai_temperature",
-        request.aiTemperature
+        request.aiTemperature,
       );
 
     }
@@ -302,7 +375,7 @@ export class LeadRepository {
 
       query = query.gte(
         "ai_score",
-        request.minScore
+        request.minScore,
       );
 
     }
@@ -313,7 +386,7 @@ export class LeadRepository {
 
       query = query.lte(
         "ai_score",
-        request.maxScore
+        request.maxScore,
       );
 
     }
@@ -324,13 +397,10 @@ export class LeadRepository {
         "created_at",
 
       {
-
         ascending:
           request.ascending ??
           false,
-
-      }
-
+      },
     );
 
     if (
@@ -344,8 +414,7 @@ export class LeadRepository {
 
         request.offset +
           request.limit -
-          1
-
+          1,
       );
 
     }
@@ -355,30 +424,30 @@ export class LeadRepository {
     ) {
 
       query = query.limit(
-        request.limit
+        request.limit,
       );
 
     }
 
     const {
-
       data,
-
       error,
-
     } = await query;
 
     if (error) {
-
       throw error;
-
     }
 
     return data ?? [];
-
   }
 
 }
 
 export const leadRepository =
   new LeadRepository();
+
+
+
+
+
+

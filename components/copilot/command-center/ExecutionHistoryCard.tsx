@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   RuntimeHistoryEntry,
   RuntimeHistoryStats,
 } from "@/platform/runtime/history";

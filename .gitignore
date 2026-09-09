@@ -1,4 +1,4 @@
-node_modules/
+﻿node_modules/
 .next/
 out/
 .env*
@@ -9,3 +9,15 @@ out/
 *.tscls
 *.bak
 npm-debug.log*
+
+.vercel
+.env*
+audit-backups/
+utf8-backup/
+supabase/.temp/
+*.tsbuildinfo
+*.backup.tsx
+*.backup.v2.tsx
+*.before-*.tsx
+*.before-*.ts
+route.before-*.ts

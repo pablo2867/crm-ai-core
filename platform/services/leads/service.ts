@@ -1,5 +1,4 @@
 ﻿import { leadRepository } from "@/platform/repositories/lead";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 import { billingEngine } from "@/platform/billing";
 import { planEnforcementEngine } from "@/platform/billing/enforcement";
 
@@ -17,21 +16,11 @@ export class LeadService {
     request: CreateLeadRequest,
   ): Promise<CreateLeadResult> {
 
-    const { count, error: countError } =
-      await supabaseAdmin
-        .from("leads")
-        .select("id", {
-          count: "exact",
-          head: true,
-        })
-        .eq(
-          "organization_id",
-          request.organizationId,
-        );
-
-    if (countError) {
-      throw countError;
-    }
+    const count =
+      await leadRepository.countByTenant(
+        request.organizationId,
+        request.workspaceId,
+      );
 
     const subscription =
       await billingEngine.get(
@@ -103,7 +92,7 @@ export class LeadService {
     }
 
     const aiAnalysis =
-      "Potencial cliente interesado en información sobre servicios o productos.";
+      "Potencial cliente interesado en informaciÃ³n sobre servicios o productos.";
 
     const aiFollowup =
       `Hola ${request.name}, seguimos disponibles para ayudarte cuando gustes.`;
@@ -118,9 +107,11 @@ export class LeadService {
         email: request.email,
         phone: request.phone,
         userId: request.userId,
-        organizationId: request.organizationId,
-        workspaceId: request.workspaceId,
-        status: "Nuevo",
+        organizationId:
+          request.organizationId,
+        workspaceId:
+          request.workspaceId,
+        status: request.status ?? "Nuevo",
         pipelineStage: "new",
         pipelineStageOrder: 1,
         aiScore,
@@ -144,27 +135,36 @@ export class LeadService {
   async updateLead(
     request: UpdateLeadRequest,
   ) {
-    return leadRepository.update(request);
+    return leadRepository.update(
+      request,
+    );
   }
 
   async changePipeline(
     request: ChangePipelineRequest,
   ) {
-    return leadRepository.updateStatus(request);
+    return leadRepository.updateStatus(
+      request,
+    );
   }
 
   async findLead(
     request: FindLeadRequest,
   ) {
-    return leadRepository.findById(request);
+    return leadRepository.findById(
+      request,
+    );
   }
 
   async searchLeads(
     request: SearchLeadRequest,
   ) {
-    return leadRepository.search(request);
+    return leadRepository.search(
+      request,
+    );
   }
 }
 
 export const leadService =
   new LeadService();
+

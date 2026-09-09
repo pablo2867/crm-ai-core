@@ -1,8 +1,12 @@
 export interface MemoryRecord {
 
-  id?: number;
+  id?: string;
 
   userId: string;
+
+  organizationId?: string;
+
+  workspaceId?: string;
 
   type: string;
 
@@ -20,6 +24,10 @@ export interface RememberRequest {
 
   userId: string;
 
+  organizationId?: string;
+
+  workspaceId?: string;
+
   type: string;
 
   title: string;
@@ -33,6 +41,10 @@ export interface RememberRequest {
 export interface RecallRequest {
 
   userId: string;
+
+  organizationId?: string;
+
+  workspaceId?: string;
 
   type?: string;
 

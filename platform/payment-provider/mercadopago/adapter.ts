@@ -1,4 +1,4 @@
-﻿import {
+import {
   preApprovalClient,
   preApprovalPlanClient,
 } from "./client";
@@ -111,7 +111,6 @@ export class MercadoPagoAdapter {
       );
     }
   }
-
   async getSubscription(
     providerSubscriptionId: string
   ): Promise<PaymentSubscriptionStatusResult> {
@@ -160,3 +159,7 @@ export class MercadoPagoAdapter {
 
 export const mercadoPagoAdapter =
   new MercadoPagoAdapter();
+
+
+
+

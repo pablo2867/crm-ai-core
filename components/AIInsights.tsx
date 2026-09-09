@@ -1,4 +1,4 @@
-interface Props {
+﻿interface Props {
   totalLeads?: number;
   hotLeads?: number;
   warmLeads?: number;

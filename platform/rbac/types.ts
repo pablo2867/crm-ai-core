@@ -1,30 +1,20 @@
-export type Role =
-  | "SUPER_ADMIN"
-  | "ORGANIZATION_ADMIN"
-  | "WORKSPACE_ADMIN"
-  | "SALES_MANAGER"
-  | "SALES_AGENT"
-  | "VIEWER";
+﻿import type {
+  Role,
+  RolePermissions,
+} from "@/platform/auth/roles";
 
-export type Permission =
-  | "leads.read"
-  | "leads.write"
-  | "leads.delete"
-  | "tasks.read"
-  | "tasks.write"
-  | "tasks.delete"
-  | "analytics.view"
-  | "copilot.use"
-  | "settings.manage"
-  | "organization.manage"
-  | "workspace.manage"
-  | "users.manage";
+import type {
+  Permission,
+} from "@/platform/auth/permissions";
+
+export type RBACRole = Role;
+export type RBACPermission = Permission;
 
 export interface RoleDefinition {
 
   role: Role;
 
-  permissions: Permission[];
+  permissions: readonly Permission[];
 
 }
 
@@ -38,7 +28,7 @@ export interface UserPermissions {
 
   role: Role;
 
-  permissions: Permission[];
+  permissions: readonly Permission[];
 
 }
 
@@ -49,3 +39,7 @@ export interface PermissionCheckRequest {
   permission: Permission;
 
 }
+
+export { Role, RolePermissions };
+export { Permissions } from "@/platform/auth/permissions";
+export type { Permission } from "@/platform/auth/permissions";

@@ -1,56 +1,144 @@
+import {
+  supabaseAdmin,
+} from "@/lib/supabase-admin";
+
 import type {
   ExecutiveMemoryRecord,
   MemorySearchOptions,
   SaveMemoryRequest,
 } from "./types";
 
-export class ExecutiveMemoryStore {
+function toExecutiveMemoryRecord(
+  row: Record<string, unknown>
+): ExecutiveMemoryRecord {
 
-  private readonly records: ExecutiveMemoryRecord[] = [];
+  return {
+
+    id:
+      row.id as string,
+
+    userId:
+      row.user_id as string,
+
+    organizationId:
+      row.organization_id as string,
+
+    workspaceId:
+      row.workspace_id as string,
+
+    leadId:
+      typeof row.lead_id === "number"
+        ? row.lead_id
+        : undefined,
+
+    workflow:
+      row.workflow as string | undefined,
+
+    skill:
+      row.skill as string | undefined,
+
+    summary:
+      row.content as string,
+
+    recommendation:
+      row.recommendation as string | undefined,
+
+    priority:
+      (row.priority as ExecutiveMemoryRecord["priority"])
+      ?? "MEDIUM",
+
+    metadata:
+      (row.metadata as Record<string, unknown> | null)
+      ?? undefined,
+
+    createdAt:
+      row.created_at as string,
+
+  };
+
+}
+
+export class ExecutiveMemoryStore {
 
   async save(
     request: SaveMemoryRequest
   ): Promise<ExecutiveMemoryRecord> {
 
-    const record: ExecutiveMemoryRecord = {
+    if (
+      !request.organizationId ||
+      !request.workspaceId
+    ) {
 
-      id: crypto.randomUUID(),
+      throw new Error(
+        "EXECUTIVE_MEMORY_TENANT_CONTEXT_REQUIRED"
+      );
 
-      userId:
-        request.userId,
+    }
 
-      leadId:
-        request.leadId,
+    const {
+      data,
+      error,
+    } = await supabaseAdmin
 
-      workflow:
-        request.workflow,
+      .from("ai_memory")
 
-      skill:
-        request.skill,
+      .insert({
 
-      summary:
-        request.summary,
+        user_id:
+          request.userId,
 
-      recommendation:
-        request.recommendation,
+        organization_id:
+          request.organizationId,
 
-      priority:
-        request.priority ??
-        "MEDIUM",
+        workspace_id:
+          request.workspaceId,
 
-      metadata:
-        request.metadata,
+        lead_id:
+          request.leadId ?? null,
 
-      createdAt:
-        new Date().toISOString(),
+        memory_type:
+          "executive",
 
-    };
+        workflow:
+          request.workflow ?? null,
 
-    this.records.unshift(
-      record
+        skill:
+          request.skill ?? null,
+
+        title:
+          request.workflow
+            ? `Executive Memory - ${request.workflow}`
+            : "Executive Memory",
+
+        content:
+          request.summary,
+
+        recommendation:
+          request.recommendation ?? null,
+
+        priority:
+          request.priority ?? "MEDIUM",
+
+        metadata:
+          request.metadata ?? {},
+
+      })
+
+      .select("*")
+
+      .single();
+
+    if (error) {
+
+      throw new Error(
+        `EXECUTIVE_MEMORY_STORAGE_ERROR: ${error.message}`
+      );
+
+    }
+
+    return toExecutiveMemoryRecord(
+      data as Record<string, unknown>
     );
-
-    return record;
 
   }
 
@@ -58,92 +146,237 @@ export class ExecutiveMemoryStore {
     options: MemorySearchOptions
   ): Promise<ExecutiveMemoryRecord[]> {
 
-    let results =
-      this.records.filter(
-        record =>
-          record.userId ===
+    let query =
+      supabaseAdmin
+
+        .from("ai_memory")
+
+        .select("*")
+
+        .eq(
+          "user_id",
           options.userId
-      );
+        )
+
+        .eq(
+          "memory_type",
+          "executive"
+        )
+
+        .order(
+          "created_at",
+          {
+            ascending: false,
+          }
+        );
+
+    if (options.organizationId) {
+
+      query =
+        query.eq(
+          "organization_id",
+          options.organizationId
+        );
+
+    }
+
+    if (options.workspaceId) {
+
+      query =
+        query.eq(
+          "workspace_id",
+          options.workspaceId
+        );
+
+    }
 
     if (
       options.leadId !==
       undefined
     ) {
 
-      results =
-        results.filter(
-          record =>
-            record.leadId ===
-            options.leadId
+      query =
+        query.eq(
+          "lead_id",
+          options.leadId
         );
 
     }
 
-    if (
-      options.workflow
-    ) {
+    if (options.workflow) {
 
-      results =
-        results.filter(
-          record =>
-            record.workflow ===
-            options.workflow
+      query =
+        query.eq(
+          "workflow",
+          options.workflow
         );
 
     }
 
-    if (
-      options.skill
-    ) {
+    if (options.skill) {
 
-      results =
-        results.filter(
-          record =>
-            record.skill ===
-            options.skill
+      query =
+        query.eq(
+          "skill",
+          options.skill
         );
 
     }
 
-    return results.slice(
-      0,
+    const {
+      data,
+      error,
+    } = await query.limit(
       options.limit ?? 20
+    );
+
+    if (error) {
+
+      throw new Error(
+        `EXECUTIVE_MEMORY_SEARCH_ERROR: ${error.message}`
+      );
+
+    }
+
+    return (
+      (data ?? []) as Record<string, unknown>[]
+    ).map(
+      toExecutiveMemoryRecord
     );
 
   }
 
   async latest(
-    userId: string
-  ): Promise<
-    ExecutiveMemoryRecord | null
-  > {
+    userId: string,
+    organizationId?: string,
+    workspaceId?: string
+  ): Promise<ExecutiveMemoryRecord | null> {
 
-    return (
-      this.records.find(
-        record =>
-          record.userId ===
+    let query =
+      supabaseAdmin
+
+        .from("ai_memory")
+
+        .select("*")
+
+        .eq(
+          "user_id",
           userId
-      ) ?? null
+        )
+
+        .eq(
+          "memory_type",
+          "executive"
+        )
+
+        .order(
+          "created_at",
+          {
+            ascending: false,
+          }
+        )
+
+        .limit(1);
+
+    if (organizationId) {
+
+      query =
+        query.eq(
+          "organization_id",
+          organizationId
+        );
+
+    }
+
+    if (workspaceId) {
+
+      query =
+        query.eq(
+          "workspace_id",
+          workspaceId
+        );
+
+    }
+
+    const {
+      data,
+      error,
+    } = await query.maybeSingle();
+
+    if (error) {
+
+      throw new Error(
+        `EXECUTIVE_MEMORY_LATEST_ERROR: ${error.message}`
+      );
+
+    }
+
+    if (!data) {
+
+      return null;
+
+    }
+
+    return toExecutiveMemoryRecord(
+      data as Record<string, unknown>
     );
 
   }
 
   async clear(
-    userId: string
+    userId: string,
+    organizationId?: string,
+    workspaceId?: string
   ): Promise<void> {
 
-    const remaining =
-      this.records.filter(
-        record =>
-          record.userId !==
+    let query =
+      supabaseAdmin
+
+        .from("ai_memory")
+
+        .delete()
+
+        .eq(
+          "user_id",
           userId
+        )
+
+        .eq(
+          "memory_type",
+          "executive"
+        );
+
+    if (organizationId) {
+
+      query =
+        query.eq(
+          "organization_id",
+          organizationId
+        );
+
+    }
+
+    if (workspaceId) {
+
+      query =
+        query.eq(
+          "workspace_id",
+          workspaceId
+        );
+
+    }
+
+    const {
+      error,
+    } = await query;
+
+    if (error) {
+
+      throw new Error(
+        `EXECUTIVE_MEMORY_CLEAR_ERROR: ${error.message}`
       );
 
-    this.records.length = 0;
-
-    this.records.push(
-      ...remaining
-    );
+    }
 
   }
 

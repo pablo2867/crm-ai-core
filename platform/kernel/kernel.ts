@@ -725,6 +725,12 @@ export class AIKernel {
         userId:
           request.userId,
 
+        organizationId:
+          request.organizationId,
+
+        workspaceId:
+          request.workspaceId,
+
         type:
           "kernel",
 
@@ -795,6 +801,8 @@ export class AIKernel {
 
 export const aiKernel =
   new AIKernel();
+
+
 
 
 

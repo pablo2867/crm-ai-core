@@ -1,4 +1,4 @@
-export default function LeadCardBadges({
+﻿export default function LeadCardBadges({
   lead,
 }: any) {
   const score = Number(

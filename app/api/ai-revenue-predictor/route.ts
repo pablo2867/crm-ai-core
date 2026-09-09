@@ -1,4 +1,5 @@
-﻿import { NextResponse } from "next/server";
+﻿import { Permissions } from "@/platform/auth/permissions";
+import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase-server";
 import { authEngine } from "@/platform/auth";
@@ -29,6 +30,12 @@ export async function GET() {
       });
     }
 
+
+    const tenant =
+      await authEngine.getTenant();
+
+
+    await authEngine.requirePermission(Permissions.AI_EXECUTE);
     const {
       data,
       error,
@@ -41,6 +48,14 @@ export async function GET() {
       .eq(
         "user_id",
         user.id
+      )
+      .eq(
+        "organization_id",
+        tenant.organizationId
+      )
+      .eq(
+        "workspace_id",
+        tenant.workspaceId
       );
 
     if (error) {
@@ -123,3 +138,4 @@ export async function GET() {
     });
   }
 }
+

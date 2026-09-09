@@ -1,15 +1,16 @@
-﻿import {
+﻿import { Permissions } from "@/platform/auth/permissions";
+import {
   NextRequest,
   NextResponse,
 } from "next/server";
 
 import {
-  supabaseAdmin,
-} from "@/lib/supabase-admin";
-
-import {
   authEngine,
 } from "@/platform/auth";
+
+import {
+  taskRepository,
+} from "@/platform/repositories/task";
 
 export async function POST(
   request: NextRequest
@@ -24,6 +25,8 @@ export async function POST(
 
     const tenant =
       await authEngine.getTenant();
+
+    await authEngine.requirePermission(Permissions.TASKS_CREATE);
 
     // =======================================
     // REQUEST
@@ -59,13 +62,6 @@ export async function POST(
       );
     }
 
-    // =======================================
-    // USER / TENANT
-    // =======================================
-
-    // La identidad y el tenant siempre
-    // provienen del contexto autenticado.
-
     const userId =
       user.id;
 
@@ -73,50 +69,16 @@ export async function POST(
     // DUPLICATE CHECK
     // =======================================
 
-    const {
-      data: existingTask,
-      error: existingError,
-    } = await supabaseAdmin
-      .from("tasks")
-      .select("id")
-      .eq(
-        "user_id",
-        userId
-      )
-      .eq(
-        "organization_id",
-        tenant.organizationId
-      )
-      .eq(
-        "workspace_id",
-        tenant.workspaceId
-      )
-      .eq(
-        "lead_name",
-        lead_name
-      )
-      .eq(
-        "status",
-        "pending"
-      )
-      .maybeSingle();
-
-    if (existingError) {
-      console.error(
-        existingError
-      );
-
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            existingError.message,
-        },
-        {
-          status: 500,
-        }
-      );
-    }
+    const existingTask =
+      await taskRepository.findPendingByLead({
+        userId,
+        organizationId:
+          tenant.organizationId,
+        workspaceId:
+          tenant.workspaceId,
+        leadName:
+          lead_name,
+      });
 
     if (existingTask) {
       return NextResponse.json({
@@ -133,64 +95,31 @@ export async function POST(
     // CREATE TASK
     // =======================================
 
-    const {
-      data,
-      error,
-    } = await supabaseAdmin
-      .from("tasks")
-      .insert({
-        user_id:
-          userId,
-
-        organization_id:
+    const data =
+      await taskRepository.create({
+        userId,
+        organizationId:
           tenant.organizationId,
-
-        workspace_id:
+        workspaceId:
           tenant.workspaceId,
-
-        lead_name,
-
+        leadName:
+          lead_name,
         title,
-
         description,
-
         priority,
-
         status:
           "pending",
-
-        due_date,
-
-        completed_at:
+        dueDate:
+          due_date,
+        completedAt:
           null,
-
-        assigned_to,
-
+        assignedTo:
+          assigned_to,
         source,
-
-        ai_generated,
-
+        aiGenerated:
+          ai_generated,
         notes,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error(
-        error
-      );
-
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            error.message,
-        },
-        {
-          status: 500,
-        }
-      );
-    }
+      });
 
     return NextResponse.json({
       success: true,
@@ -199,15 +128,15 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error(
-      error
-    );
+    console.error(error);
 
     return NextResponse.json(
       {
         success: false,
         error:
-          "Internal Server Error",
+          error instanceof Error
+            ? error.message
+            : "Internal Server Error",
       },
       {
         status: 500,
@@ -215,3 +144,4 @@ export async function POST(
     );
   }
 }
+

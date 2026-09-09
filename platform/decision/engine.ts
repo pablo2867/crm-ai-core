@@ -215,6 +215,8 @@ export class DecisionEngine {
       latestMemory =
         await executiveMemoryEngine.latest(
           request.userId,
+          request.organizationId,
+          request.workspaceId,
         );
 
     }
@@ -572,3 +574,4 @@ export class DecisionEngine {
 
 export const decisionEngine =
   new DecisionEngine();
+

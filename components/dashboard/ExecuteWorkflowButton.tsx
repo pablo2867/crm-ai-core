@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -15,7 +15,7 @@ const ACTIONS = [
     prompt: "Encuentra el mejor lead para contactar.",
   },
   {
-    label: "✉️ Generar follow-up",
+    label: "✉️ Generar follow-up",
     prompt: "Genera un follow-up para el mejor lead.",
   },
   {
@@ -84,19 +84,19 @@ export default function ExecuteWorkflowButton() {
       const data =
         await response.json();
 
-      if (data.success) {
+      if (data.result?.success) {
 
         setMessage(
           "IA ejecutada correctamente."
         );
 
         setWorkflow(
-          data.result?.workflow?.name ??
+          data.result?.workflow?.workflowName ??
           "Workflow IA"
         );
 
         setExecution(
-          data.result?.execution ??
+          data.result?.workflow?.execution ??
           []
         );
 
@@ -211,7 +211,7 @@ export default function ExecuteWorkflowButton() {
 
                       {step.success
                         ? "✅"
-                        : "❌"}{" "}
+                        : "❌"}
 
                       {step.skill}
 
@@ -242,3 +242,6 @@ export default function ExecuteWorkflowButton() {
   );
 
 }
+
+
+

@@ -55,7 +55,7 @@ export default async function AgendaWidget({
         </p>
 
         <h2 className="text-3xl font-black text-white mt-2">
-          PrÃ³ximas Tareas
+          Próximas Tareas
         </h2>
 
       </div>
@@ -121,5 +121,6 @@ export default async function AgendaWidget({
   );
 
 }
+
 
 

@@ -1,7 +1,5 @@
-﻿import {
-  supabaseAdmin,
-} from "@/lib/supabase-admin";
-
+﻿import { leadRepository } from "@/platform/repositories/lead";
+import { tenantEngine } from "@/platform/tenant";
 import type {
   Lead,
 } from "@/platform/domain/lead/types";
@@ -45,64 +43,30 @@ export async function getLeads(
   userId: string,
   options: GetLeadsOptions = {}
 ): Promise<Lead[]> {
-
   const startedAt = Date.now();
-let query = supabaseAdmin
-    .from("leads")
-    .select(LEAD_SELECT)
-    .eq("user_id", userId);
 
-  if (options.organizationId) {
-    query = query.eq(
-      "organization_id",
-      options.organizationId
-    );
-  }
+  const tenant = await tenantEngine.getTenant(userId);
 
-  if (options.workspaceId) {
-    query = query.eq(
-      "workspace_id",
-      options.workspaceId
-    );
-  }
+  const data = await leadRepository.search({
+    userId,
+    organizationId: options.organizationId ?? tenant.organizationId,
+    workspaceId: options.workspaceId ?? tenant.workspaceId,
+    search: options.search,
+    orderBy: "pipeline_stage_order",
+    ascending: true,
+  });
 
-  if (options.search?.trim()) {
-    query = query.ilike(
-      "name",
-      `%${options.search.trim()}%`
-    );
-  }
-
-  const {
-    data,
-    error,
-  } = await query
-    .order(
-      "pipeline_stage_order",
-      {
-        ascending: true,
-      }
-    )
-    .order(
-      "created_at",
-      {
-        ascending: false,
-      }
-    );
-
-  if (error) {
-    throw error;
-  }
+  const leads = (data ?? []) as Lead[];
 
   console.log(
     "[LEAD SERVICE TIMING] getLeads:",
     Date.now() - startedAt,
     "ms",
     "rows:",
-    data?.length ?? 0
+    leads.length
   );
 
-  return (data ?? []) as Lead[];
+  return leads;
 }
 
 export interface GetLeadOptions {
@@ -115,38 +79,16 @@ export async function getLead(
   userId: string,
   options: GetLeadOptions = {}
 ): Promise<Lead | null> {
+  const tenant = await tenantEngine.getTenant(userId);
 
-  let query =
-    supabaseAdmin
-      .from("leads")
-      .select(LEAD_SELECT)
-      .eq("id", id)
-      .eq("user_id", userId);
+  const data = await leadRepository.findById({
+    id,
+    userId,
+    organizationId: options.organizationId ?? tenant.organizationId,
+    workspaceId: options.workspaceId ?? tenant.workspaceId,
+  });
 
-  if (options.organizationId) {
-    query = query.eq(
-      "organization_id",
-      options.organizationId
-    );
-  }
-
-  if (options.workspaceId) {
-    query = query.eq(
-      "workspace_id",
-      options.workspaceId
-    );
-  }
-
-  const {
-    data,
-    error,
-  } = await query.maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  return data as Lead | null;
+  return (data ?? null) as Lead | null;
 }
 
 export async function findBestLead(
@@ -190,8 +132,8 @@ export async function getHotLeads(
 ---------------------------------------
 Closing Candidates
 ---------------------------------------
-Mantiene la lógica existente del CRM:
-solo considera candidatos con 70% o más.
+Mantiene la lÃ³gica existente del CRM:
+solo considera candidatos con 70% o mÃ¡s.
 ---------------------------------------
 */
 
@@ -372,6 +314,8 @@ export async function getLeadDashboard(
   };
 
 }
+
+
 
 
 

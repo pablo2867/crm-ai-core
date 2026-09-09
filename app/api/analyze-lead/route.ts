@@ -1,10 +1,15 @@
-﻿import {
+﻿import { Permissions } from "@/platform/auth/permissions";
+import {
   NextResponse,
 } from "next/server";
 
 import {
   createClient,
 } from "@supabase/supabase-js";
+
+import { authEngine } from "@/platform/auth";
+
+import { tenantEngine } from "@/platform/tenant";
 
 import {
   aiGateway,
@@ -68,6 +73,13 @@ export async function POST(
 
     }
 
+    const tenant =
+      await tenantEngine.getTenant(
+        user.id
+      );
+
+
+    await authEngine.requirePermission(Permissions.AI_EXECUTE);
     const body =
       await request.json();
 
@@ -89,14 +101,14 @@ NO uses markdown.
 NO uses **.
 NO uses listas.
 
-Responde EXACTAMENTE asÃ­:
+Responde EXACTAMENTE así:
 
 Temperatura: HOT/WARM/COLD
 Score: 1-100
 Probabilidad: Alta/Media/Baja
 Prioridad: Alta/Media/Baja
-IntenciÃ³n: Compra/InvestigaciÃ³n/Contacto
-Resumen: una sola lÃ­nea corta
+Intención: Compra/Investigación/Contacto
+Resumen: una sola línea corta
 `;
 
     const response =
@@ -200,7 +212,7 @@ Resumen: una sola lÃ­nea corta
     const ai_analysis =
       summaryMatch?.[1]
         ?.trim() ??
-      "Sin anÃ¡lisis";
+      "Sin análisis";
 
     const cleanEmail =
       body.email
@@ -236,6 +248,14 @@ Resumen: una sola lÃ­nea corta
         .eq(
           "user_id",
           user.id
+        )
+        .eq(
+          "organization_id",
+          tenant.organizationId
+        )
+        .eq(
+          "workspace_id",
+          tenant.workspaceId
         );
 
     if (error) {
@@ -289,5 +309,13 @@ Resumen: una sola lÃ­nea corta
   }
 
 }
+
+
+
+
+
+
+
+
 
 

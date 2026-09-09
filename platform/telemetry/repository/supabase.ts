@@ -6,6 +6,10 @@ import type {
   TelemetryRecord,
 } from "../types";
 
+import {
+  tenantEngine,
+} from "@/platform/tenant";
+
 export class TelemetryRepository {
 
   /*
@@ -94,7 +98,12 @@ export class TelemetryRepository {
     userId: string
   ) {
 
-    const {
+    
+    const tenant =
+      await tenantEngine.getTenant(
+        userId
+      );
+const {
 
       data,
 
@@ -107,6 +116,13 @@ export class TelemetryRepository {
         .eq(
           "user_id",
           userId
+        )        .eq(
+          "organization_id",
+          tenant.organizationId
+        )
+        .eq(
+          "workspace_id",
+          tenant.workspaceId
         )
         .order(
           "started_at",
@@ -136,7 +152,12 @@ export class TelemetryRepository {
     limit = 20
   ) {
 
-    const {
+    
+    const tenant =
+      await tenantEngine.getTenant(
+        userId
+      );
+const {
 
       data,
 
@@ -149,6 +170,13 @@ export class TelemetryRepository {
         .eq(
           "user_id",
           userId
+        )        .eq(
+          "organization_id",
+          tenant.organizationId
+        )
+        .eq(
+          "workspace_id",
+          tenant.workspaceId
         )
         .order(
           "started_at",
@@ -174,6 +202,55 @@ export class TelemetryRepository {
   ---------------------------------------
   */
 
+
+  /*
+  ---------------------------------------
+  Analytics Base Records
+  ---------------------------------------
+  */
+
+  async getAnalyticsRecords(
+    userId: string
+  ) {
+
+    const tenant =
+      await tenantEngine.getTenant(
+        userId
+      );
+
+    const {
+      data,
+      error,
+    } =
+      await supabaseAdmin
+        .from("ai_telemetry")
+        .select("*")
+        .eq(
+          "user_id",
+          userId
+        )
+        .eq(
+          "organization_id",
+          tenant.organizationId
+        )
+        .eq(
+          "workspace_id",
+          tenant.workspaceId
+        )
+        .order(
+          "started_at",
+          {
+            ascending: false,
+          }
+        );
+
+    if (error) {
+      throw error;
+    }
+
+    return data ?? [];
+
+  }
   async summary(
     userId: string
   ) {
@@ -382,3 +459,6 @@ export class TelemetryRepository {
 
 export const telemetryRepository =
   new TelemetryRepository();
+
+
+

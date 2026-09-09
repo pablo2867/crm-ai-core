@@ -1,4 +1,5 @@
-﻿import {
+﻿import { Permissions } from "@/platform/auth/permissions";
+import {
   NextResponse,
 } from "next/server";
 
@@ -9,6 +10,10 @@ import {
 import {
   supabaseAdmin,
 } from "@/lib/supabase-admin";
+
+import {
+  authEngine,
+} from "@/platform/auth";
 
 export async function GET() {
   try {
@@ -32,6 +37,13 @@ export async function GET() {
       );
     }
 
+    
+    const tenant =
+      await authEngine.getTenant();
+
+    
+    await authEngine.requirePermission(Permissions.AI_EXECUTE);
+
     const {
       data: leads,
       error,
@@ -46,6 +58,14 @@ export async function GET() {
       .eq(
         "user_id",
         user.id
+      )
+      .eq(
+        "organization_id",
+        tenant.organizationId
+      )
+      .eq(
+        "workspace_id",
+        tenant.workspaceId
       )
       .in(
         "ai_temperature",
@@ -97,7 +117,7 @@ export async function GET() {
       switch (personality) {
         case "premium":
           subject =
-            "AtenciÃ³n prioritaria para tu solicitud";
+            "Atención prioritaria para tu solicitud";
 
           emailContent =
 `Hola ${lead.name},
@@ -130,7 +150,7 @@ CRM AI Core`;
           emailContent =
 `Hola ${lead.name},
 
-QuerÃ­amos retomar la conversaciÃ³n contigo.
+Queríamos retomar la conversación contigo.
 
 Seguimos disponibles para ayudarte cuando gustes.
 
@@ -203,4 +223,6 @@ CRM AI Core`;
     );
   }
 }
+
+
 

@@ -1,146 +1,62 @@
-import {
-  NextResponse,
-} from "next/server";
+﻿import { Permissions } from "@/platform/auth/permissions";
+import { NextResponse } from "next/server";
+import { authEngine } from "@/platform/auth";
+import { leadRepository } from "@/platform/repositories/lead";
 
-import {
-  createClient,
-} from "@/lib/supabase-server";
-
-import {
-  leadRepository,
-} from "@/platform/repositories/lead";
-
-export async function POST(
-  req: Request
-) {
-
+export async function PUT(request: Request) {
   try {
+    const user = await authEngine.getUser();
+    const tenant = await authEngine.getTenant();
 
-    const body =
-      await req.json();
+    await authEngine.requirePermission(Permissions.CRM_LEADS_UPDATE);
+
+    const body = await request.json();
 
     const {
-
       id,
-
       name,
-
       email,
-
       company,
-
       phone,
-
       ai_score,
-
       ai_temperature,
-
       deal_value,
-
     } = body;
 
-    const supabase =
-      await createClient();
-
-    const {
-
-      data: { user },
-
-    } =
-      await supabase.auth.getUser();
-
-    if (!user) {
-
-      return NextResponse.json(
-
-        {
-
-          success: false,
-
-          error:
-            "Unauthorized",
-
-        },
-
-        {
-
-          status: 401,
-
-        }
-
-      );
-
-    }
-
     await leadRepository.update({
-
       id,
-
-      userId:
-        user.id,
-
+      userId: user.id,
+      organizationId: tenant.organizationId,
+      workspaceId: tenant.workspaceId,
       values: {
-
         name,
-
         email,
-
         company,
-
         phone,
-
         ai_score,
-
         ai_temperature,
-
         deal_value,
-
       },
-
     });
 
     return NextResponse.json({
-
       success: true,
-
     });
-
-  }
-
-  catch (error) {
-
-    console.error(
-
-      "UPDATE LEAD ERROR:",
-
-      error
-
-    );
+  } catch (error) {
+    console.error("UPDATE_LEAD_ERROR", error);
 
     return NextResponse.json(
-
       {
-
         success: false,
-
         error:
-
           error instanceof Error
-
             ? error.message
-
-            : "No fue posible actualizar el lead.",
-
+            : "UPDATE_LEAD_FAILED",
       },
-
       {
-
         status: 500,
-
-      }
-
+      },
     );
-
   }
-
 }
+

@@ -1,4 +1,5 @@
-﻿import {
+﻿import { Permissions } from "@/platform/auth/permissions";
+import {
   NextResponse,
 } from "next/server";
 
@@ -13,6 +14,10 @@ import {
 import {
   aiGateway,
 } from "@/platform/ai/gateway";
+
+import {
+  authEngine,
+} from "@/platform/auth";
 
 export async function GET() {
 
@@ -44,6 +49,13 @@ export async function GET() {
 
     }
 
+    
+    const tenant =
+      await authEngine.getTenant();
+
+    
+    await authEngine.requirePermission(Permissions.AI_EXECUTE);
+
     const {
       data: leads,
       error: leadsError,
@@ -64,6 +76,14 @@ export async function GET() {
         .eq(
           "user_id",
           user.id
+        )
+        .eq(
+          "organization_id",
+          tenant.organizationId
+        )
+        .eq(
+          "workspace_id",
+          tenant.workspaceId
         );
 
     console.log(
@@ -136,12 +156,12 @@ REVENUE:
 [monto estimado]
 
 ACCION:
-[acciÃ³n recomendada]
+[acción recomendada]
 
 Reglas:
 
-- EspaÃ±ol.
-- MÃ¡ximo 80 palabras.
+- Español.
+- Máximo 80 palabras.
 - Sin markdown.
 - Sin listas.
 
@@ -223,4 +243,6 @@ ${context}
   }
 
 }
+
+
 

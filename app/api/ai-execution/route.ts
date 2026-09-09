@@ -1,4 +1,6 @@
-﻿import {
+﻿import { Permissions } from "@/platform/auth/permissions";
+import { authEngine } from "@/platform/auth";
+import {
   NextRequest,
   NextResponse,
 } from "next/server";
@@ -34,6 +36,7 @@ export async function POST(
       data: { user },
     } =
       await supabase.auth.getUser();
+    await authEngine.requirePermission(Permissions.AI_EXECUTE);
 
     if (!user) {
       return NextResponse.json(
@@ -122,4 +125,5 @@ export async function GET() {
       "AI Execution Engine listo.",
   });
 }
+
 

@@ -1,136 +1,51 @@
-﻿import {
-  supabaseAdmin,
-} from "@/lib/supabase-admin";
+﻿import { taskRepository } from "@/platform/repositories/task";
 
 export interface TaskQueryContext {
-
   userId: string;
-
   organizationId: string;
-
   workspaceId: string;
-
 }
 
 export async function getTasks(
-  context: TaskQueryContext
+  context: TaskQueryContext,
 ) {
-
   const {
     userId,
     organizationId,
     workspaceId,
   } = context;
 
-  const {
-    data,
-    error,
-  } = await supabaseAdmin
-
-    .from("tasks")
-
-    .select("*")
-
-    .eq(
-      "user_id",
-      userId
-    )
-
-    .eq(
-      "organization_id",
-      organizationId
-    )
-
-    .eq(
-      "workspace_id",
-      workspaceId
-    )
-
-    .order(
-      "created_at",
-      {
-        ascending: false,
-      }
-    );
-
-  if (error) {
-    throw error;
-  }
-
-  return data ?? [];
-
+  return taskRepository.list({
+    userId,
+    organizationId,
+    workspaceId,
+  });
 }
 
 export async function getRecentTasks(
   context: TaskQueryContext,
-  limit = 5
+  limit = 5,
 ) {
+  const tasks = await getTasks(context);
 
-  const tasks =
-    await getTasks(
-      context
-    );
-
-  return tasks.slice(
-    0,
-    limit
-  );
-
+  return tasks.slice(0, limit);
 }
 
 export async function getPendingTasks(
   context: TaskQueryContext,
-  limit = 3
+  limit = 3,
 ) {
-
   const {
     userId,
     organizationId,
     workspaceId,
   } = context;
 
-  const {
-    data,
-    error,
-  } = await supabaseAdmin
-
-    .from("tasks")
-
-    .select("*")
-
-    .eq(
-      "user_id",
-      userId
-    )
-
-    .eq(
-      "organization_id",
-      organizationId
-    )
-
-    .eq(
-      "workspace_id",
-      workspaceId
-    )
-
-    .eq(
-      "status",
-      "pending"
-    )
-
-    .order(
-      "created_at",
-      {
-        ascending: false,
-      }
-    )
-
-    .limit(limit);
-
-  if (error) {
-    throw error;
-  }
-
-  return data ?? [];
-
+  return taskRepository.list({
+    userId,
+    organizationId,
+    workspaceId,
+    status: "pending",
+    limit,
+  });
 }

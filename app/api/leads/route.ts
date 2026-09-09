@@ -1,116 +1,34 @@
-import {
-  NextResponse,
-} from "next/server";
-
-import {
-  createClient,
-} from "@/lib/supabase-server";
-
-import {
-  leadRepository,
-} from "@/platform/repositories/lead";
+﻿import { NextResponse } from "next/server";
+import { authEngine } from "@/platform/auth";
+import { leadRepository } from "@/platform/repositories/lead";
 
 export async function GET() {
-
-  const start =
-    Date.now();
-
   try {
+    const user = await authEngine.getUser();
+    const tenant = await authEngine.getTenant();
 
-    const supabase =
-      await createClient();
-
-    const {
-
-      data: { user },
-
-    } =
-      await supabase.auth.getUser();
-
-    if (!user) {
-
-      return NextResponse.json(
-
-        {
-
-          success: false,
-
-          error:
-            "Unauthorized",
-
-        },
-
-        {
-
-          status: 401,
-
-        }
-
-      );
-
-    }
-
-    const data =
+    const leads =
       await leadRepository.search({
-
-        userId:
-          user.id,
-
+        userId: user.id,
+        organizationId: tenant.organizationId,
+        workspaceId: tenant.workspaceId,
       });
 
-    console.log(
-
-      "LEADS_API:",
-
-      `${Date.now() - start}ms`
-
-    );
-
-    return NextResponse.json({
-
-      success: true,
-
-      leads:
-        data,
-
-    });
-
-  }
-
-  catch (error) {
-
-    console.error(
-
-      "LEADS API ERROR:",
-
-      error
-
-    );
+    return NextResponse.json(leads);
+  } catch (error) {
+    console.error("LEADS_API_ERROR", JSON.stringify(error, Object.getOwnPropertyNames(error)));
 
     return NextResponse.json(
-
       {
-
         success: false,
-
-        error:
-
-          error instanceof Error
-
-            ? error.message
-
-            : "Error interno del servidor.",
-
+        error: error instanceof Error ? error.message : JSON.stringify(error, Object.getOwnPropertyNames(error)),
       },
-
       {
-
         status: 500,
-
-      }
-
+      },
     );
-
   }
-
 }
+
+
+

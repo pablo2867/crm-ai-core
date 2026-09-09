@@ -85,7 +85,7 @@ Revenue Potencial: $${revenue.toLocaleString()}
         >
 
           <p className="text-zinc-400">
-            ðŸ”¥ Mejor Oportunidad
+            🔥 Mejor Oportunidad
           </p>
 
           <button
@@ -129,7 +129,7 @@ Revenue Potencial: $${revenue.toLocaleString()}
         >
 
           <p className="text-zinc-400">
-            âš  Leads en Riesgo
+            ⚠ Leads en Riesgo
           </p>
 
           <h3 className="text-2xl font-bold mt-2">
@@ -150,3 +150,4 @@ Revenue Potencial: $${revenue.toLocaleString()}
   );
 
 }
+

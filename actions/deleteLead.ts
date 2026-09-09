@@ -1,5 +1,7 @@
 "use server";
 
+import { leadRepository } from "@/platform/repositories/lead";
+import { tenantEngine } from "@/platform/tenant";
 import { revalidatePath } from "next/cache";
 
 import {
@@ -25,20 +27,14 @@ export async function deleteLead(
       "Unauthorized"
     );
   }
+  const tenant = await tenantEngine.getTenant(user.id);
 
-  const { error } =
-    await supabase
-      .from("leads")
-      .delete()
-      .eq("id", id)
-      .eq(
-        "user_id",
-        user.id
-      );
-
-  if (error) {
-    throw error;
-  }
+  await leadRepository.delete({
+    id: Number(id),
+    userId: user.id,
+    organizationId: tenant.organizationId,
+    workspaceId: tenant.workspaceId,
+  });
 
   revalidatePath("/leads");
 }

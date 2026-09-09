@@ -9,6 +9,10 @@ export interface ExecutiveMemoryRecord {
 
   userId: string;
 
+  organizationId?: string;
+
+  workspaceId?: string;
+
   leadId?: number;
 
   workflow?: string;
@@ -31,6 +35,10 @@ export interface SaveMemoryRequest {
 
   userId: string;
 
+  organizationId?: string;
+
+  workspaceId?: string;
+
   leadId?: number;
 
   workflow?: string;
@@ -50,6 +58,10 @@ export interface SaveMemoryRequest {
 export interface MemorySearchOptions {
 
   userId: string;
+
+  organizationId?: string;
+
+  workspaceId?: string;
 
   leadId?: number;
 

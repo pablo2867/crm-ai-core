@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type {
   TimelineCardProps,
@@ -238,3 +238,4 @@ export function TimelineCard({
 }
 
 export default TimelineCard;
+

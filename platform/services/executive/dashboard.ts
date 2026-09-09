@@ -85,7 +85,14 @@ export interface ExecutiveDashboardData {
   business:
     ExecutiveBusiness | null;
 
-  intelligence:
+  
+
+  dashboardData:
+    Awaited<
+      ReturnType<
+        typeof getDashboardData
+      >
+    >;intelligence:
     ReturnType<
       typeof intelligenceEngine.evaluateLeadRecord
     > | null;
@@ -100,7 +107,11 @@ export interface ExecutiveDashboardData {
 export class ExecutiveDashboardService {
 
   async get(
-    userId: string
+    userId: string,
+    options?: {
+      organizationId?: string;
+      workspaceId?: string;
+    }
   ): Promise<ExecutiveDashboardData> {
 
     const [
@@ -121,7 +132,8 @@ export class ExecutiveDashboardService {
       ),
 
       getDashboardData(
-        userId
+        userId,
+        options
       ),
 
     ]);
@@ -178,6 +190,8 @@ export class ExecutiveDashboardService {
 
         business,
 
+        dashboardData,
+
         intelligence: null,
 
         recommendations: null,
@@ -226,6 +240,8 @@ export class ExecutiveDashboardService {
 
       business,
 
+      dashboardData,
+
       intelligence,
 
       recommendations,
@@ -238,6 +254,11 @@ export class ExecutiveDashboardService {
 
 export const executiveDashboardService =
   new ExecutiveDashboardService();
+
+
+
+
+
 
 
 

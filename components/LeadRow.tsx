@@ -23,7 +23,7 @@ export default function LeadRow({
 
   const aiAnalysis =
     lead.ai_analysis ||
-    "Sin anÃ¡lisis IA";
+    "Sin análisis IA";
 
   const aiTemperature =
     lead.ai_temperature ||
@@ -180,7 +180,7 @@ export default function LeadRow({
           <div className="flex items-center gap-2">
 
             <span className="text-red-500">
-              ðŸ”¥
+              🔥
             </span>
 
             <span className="text-black dark:text-white font-bold text-lg">
@@ -474,3 +474,4 @@ export default function LeadRow({
   );
 
 }
+

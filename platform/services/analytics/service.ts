@@ -1,4 +1,4 @@
-import {
+﻿import {
   telemetryRepository,
 } from "@/platform/telemetry/repository/supabase";
 
@@ -12,49 +12,161 @@ export class AnalyticsService {
     userId: string
   ): Promise<AnalyticsDashboardDTO> {
 
-    const [
-
-      summary,
-
-      topAgents,
-
-      timeline,
-
-      recentExecutions,
-
-    ] = await Promise.all([
-
-      telemetryRepository.summary(
+    const records =
+      await telemetryRepository.getAnalyticsRecords(
         userId
-      ),
+      );
 
-      telemetryRepository.findTopAgents(
-        userId
-      ),
+    const total =
+      records.length;
 
-      telemetryRepository.findTimeline(
-        userId
-      ),
+    const successful =
+      records.filter(
+        (record) =>
+          record.success
+      ).length;
 
-      telemetryRepository.findRecent(
-        userId,
-        20
-      ),
+    const failed =
+      total -
+      successful;
 
-    ]);
+    const averageDuration =
+      total === 0
+        ? 0
+        : records.reduce(
+            (
+              sum,
+              record
+            ) =>
+              sum +
+              (record.duration ?? 0),
+            0
+          ) / total;
+
+    const agentCounts =
+      new Map<string, number>();
+
+    for (const record of records) {
+
+      const agent =
+        record.agent_id;
+
+      if (!agent) {
+        continue;
+      }
+
+      agentCounts.set(
+        agent,
+        (agentCounts.get(agent) ?? 0) + 1
+      );
+
+    }
+
+    const topAgents =
+      Array.from(
+        agentCounts.entries()
+      )
+        .map(
+          ([agent, executions]) => ({
+            agent,
+            executions,
+          })
+        )
+        .sort(
+          (a, b) =>
+            b.executions -
+            a.executions
+        );
+
+    const timelineMap =
+      new Map<string, number>();
+
+    for (const record of records) {
+
+      if (!record.started_at) {
+        continue;
+      }
+
+      const date =
+        new Date(
+          record.started_at
+        )
+          .toISOString()
+          .slice(0, 10);
+
+      timelineMap.set(
+        date,
+        (timelineMap.get(date) ?? 0) + 1
+      );
+
+    }
+
+    const timeline =
+      Array.from(
+        timelineMap.entries()
+      )
+        .sort(
+          ([a], [b]) =>
+            a.localeCompare(b)
+        )
+        .map(
+          ([date, executions]) => ({
+            date,
+            executions,
+          })
+        );
+
+    const recentExecutions =
+      records
+        .slice(0, 20)
+        .map(
+          (record) => ({
+            agent_id:
+              record.agent_id,
+            workflow:
+              record.workflow ?? null,
+            intent:
+              record.intent ?? null,
+            duration:
+              record.duration,
+            success:
+              record.success,
+            started_at:
+              record.started_at,
+            finished_at:
+              record.finished_at,
+            tokens:
+              record.tokens ?? null,
+            memory_reads:
+              record.memory_reads ?? null,
+            memory_writes:
+              record.memory_writes ?? null,
+          })
+        );
 
     return {
 
       summary: {
 
-        ...summary,
+        totalExecutions:
+          total,
+
+        successfulExecutions:
+          successful,
+
+        failedExecutions:
+          failed,
+
+        successRate:
+          total === 0
+            ? 0
+            : (successful / total) * 100,
+
+        averageDuration,
 
         mostUsedAgent:
-
           topAgents.length > 0
-
             ? topAgents[0].agent
-
             : undefined,
 
       },

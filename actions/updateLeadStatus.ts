@@ -1,16 +1,15 @@
 "use server";
 
 import {
-  supabaseAdmin,
-} from "@/lib/supabase-admin";
-
-import {
   createClient,
 } from "@/lib/supabase-server";
 
 import {
   revalidatePath,
 } from "next/cache";
+
+import { tenantEngine } from "@/platform/tenant";
+import { leadRepository } from "@/platform/repositories/lead";
 
 export async function updateLeadStatus(
   formData: FormData
@@ -41,24 +40,17 @@ export async function updateLeadStatus(
     String(
       formData.get("status")
     );
+  const tenant = await tenantEngine.getTenant(user.id);
 
-  await supabaseAdmin
-
-    .from("leads")
-
-    .update({
+  await leadRepository.update({
+    id,
+    userId: user.id,
+    organizationId: tenant.organizationId,
+    workspaceId: tenant.workspaceId,
+    values: {
       status,
-    })
-
-    .eq(
-      "id",
-      id
-    )
-
-    .eq(
-      "user_id",
-      user.id
-    );
+    },
+  });
 
   revalidatePath("/leads");
 

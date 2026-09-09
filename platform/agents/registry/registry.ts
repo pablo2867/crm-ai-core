@@ -1,4 +1,4 @@
-import {
+﻿import {
   agents as agentManifest,
 } from "@/platform/manifest";
 
@@ -73,6 +73,11 @@ export class AgentRegistry {
 
         agent:
           this.implementations[agent.id],
+
+        metadata: {
+          priority: agent.priority,
+          enabled: agent.enabled,
+        },
 
       }));
 

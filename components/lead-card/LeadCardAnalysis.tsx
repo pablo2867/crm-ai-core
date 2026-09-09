@@ -1,4 +1,4 @@
-export default function LeadCardAnalysis({
+﻿export default function LeadCardAnalysis({
   lead,
 }: any) {
   return (

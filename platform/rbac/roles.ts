@@ -1,141 +1,43 @@
-import {
-  Permissions,
-} from "./permissions";
+﻿import {
+  Role,
+  RolePermissions,
+} from "@/platform/auth/roles";
 
 import type {
-  Role,
+  Permission,
   RoleDefinition,
 } from "./types";
 
-export const Roles: Record<
-  Role,
-  RoleDefinition
-> = {
+export const Roles: Record<Role, RoleDefinition> = {
 
-  SUPER_ADMIN: {
-
-    role:
-      "SUPER_ADMIN",
-
-    permissions: [
-
-      ...Object.values(
-        Permissions
-      ),
-
-    ],
-
+  [Role.OWNER]: {
+    role: Role.OWNER,
+    permissions: RolePermissions[Role.OWNER],
   },
 
-  ORGANIZATION_ADMIN: {
-
-    role:
-      "ORGANIZATION_ADMIN",
-
-    permissions: [
-
-      Permissions.LEADS_READ,
-      Permissions.LEADS_WRITE,
-      Permissions.LEADS_DELETE,
-
-      Permissions.TASKS_READ,
-      Permissions.TASKS_WRITE,
-      Permissions.TASKS_DELETE,
-
-      Permissions.ANALYTICS_VIEW,
-
-      Permissions.COPILOT_USE,
-
-      Permissions.SETTINGS_MANAGE,
-
-      Permissions.ORGANIZATION_MANAGE,
-
-      Permissions.WORKSPACE_MANAGE,
-
-      Permissions.USERS_MANAGE,
-
-    ],
-
+  [Role.ADMIN]: {
+    role: Role.ADMIN,
+    permissions: RolePermissions[Role.ADMIN],
   },
 
-  WORKSPACE_ADMIN: {
-
-    role:
-      "WORKSPACE_ADMIN",
-
-    permissions: [
-
-      Permissions.LEADS_READ,
-      Permissions.LEADS_WRITE,
-
-      Permissions.TASKS_READ,
-      Permissions.TASKS_WRITE,
-
-      Permissions.ANALYTICS_VIEW,
-
-      Permissions.COPILOT_USE,
-
-      Permissions.USERS_MANAGE,
-
-    ],
-
+  [Role.MANAGER]: {
+    role: Role.MANAGER,
+    permissions: RolePermissions[Role.MANAGER],
   },
 
-  SALES_MANAGER: {
-
-    role:
-      "SALES_MANAGER",
-
-    permissions: [
-
-      Permissions.LEADS_READ,
-      Permissions.LEADS_WRITE,
-
-      Permissions.TASKS_READ,
-      Permissions.TASKS_WRITE,
-
-      Permissions.ANALYTICS_VIEW,
-
-      Permissions.COPILOT_USE,
-
-    ],
-
+  [Role.SALES]: {
+    role: Role.SALES,
+    permissions: RolePermissions[Role.SALES],
   },
 
-  SALES_AGENT: {
-
-    role:
-      "SALES_AGENT",
-
-    permissions: [
-
-      Permissions.LEADS_READ,
-      Permissions.LEADS_WRITE,
-
-      Permissions.TASKS_READ,
-      Permissions.TASKS_WRITE,
-
-      Permissions.COPILOT_USE,
-
-    ],
-
+  [Role.SUPPORT]: {
+    role: Role.SUPPORT,
+    permissions: RolePermissions[Role.SUPPORT],
   },
 
-  VIEWER: {
-
-    role:
-      "VIEWER",
-
-    permissions: [
-
-      Permissions.LEADS_READ,
-
-      Permissions.TASKS_READ,
-
-      Permissions.ANALYTICS_VIEW,
-
-    ],
-
+  [Role.VIEWER]: {
+    role: Role.VIEWER,
+    permissions: RolePermissions[Role.VIEWER],
   },
 
 };

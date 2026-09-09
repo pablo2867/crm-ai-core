@@ -1,4 +1,4 @@
-﻿
+
 import {
   aiUsageEngine,
 } from "@/platform/billing/usage";
@@ -286,6 +286,14 @@ export async function POST(
         .eq(
           "user_id",
           user.id
+        )
+        .eq(
+          "organization_id",
+          membership.organization_id
+        )
+        .eq(
+          "workspace_id",
+          membership.workspace_id
         )
         .select();
 
