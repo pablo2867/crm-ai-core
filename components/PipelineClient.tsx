@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import dynamic from "next/dynamic";
 
@@ -148,8 +148,7 @@ export default function PipelineClient({
 
                   ...lead,
 
-                  pipeline_stage:
-                    newStage,
+                  pipelineStage: newStage,
 
                 }
 
@@ -168,7 +167,7 @@ export default function PipelineClient({
 
           {
 
-            method: "POST",
+            method: "PUT",
 
             headers: {
 
@@ -181,8 +180,7 @@ export default function PipelineClient({
 
               id: leadId,
 
-              pipeline_stage:
-                newStage,
+              pipelineStage: newStage,
 
             }),
 

@@ -1,4 +1,5 @@
-﻿export const revalidate = 60;
+﻿import { redirect } from "next/navigation";
+export const revalidate = 60;
 
 import AIAssistantCard from "@/components/AIAssistantCard";
 
@@ -32,7 +33,20 @@ export default async function HomePage() {
     return null;
   }
 
-  const tenant = await authEngine.getTenant();
+  let tenant;
+
+try {
+    tenant = await authEngine.getTenant();
+} catch (error) {
+    if (
+        error instanceof Error &&
+        error.message === "TENANT_NOT_FOUND"
+    ) {
+        redirect("/onboarding");
+    }
+
+    throw error;
+}
 
   const {
     leads,
@@ -165,6 +179,7 @@ export default async function HomePage() {
   );
 
 }
+
 
 
 

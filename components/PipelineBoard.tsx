@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   DndContext,
@@ -53,7 +53,7 @@ export default function PipelineBoard({
         await fetch(
           "/api/update-status",
           {
-            method: "POST",
+            method: "PUT",
 
             headers: {
               "Content-Type":

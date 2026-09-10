@@ -93,9 +93,6 @@ export class LeadRepository {
           ai_followup:
             lead.aiFollowup,
 
-          ai_action:
-            lead.aiAction,
-
           close_probability:
             lead.closeProbability,
         },
@@ -445,6 +442,7 @@ export class LeadRepository {
 
 export const leadRepository =
   new LeadRepository();
+
 
 
 
