@@ -1,4 +1,4 @@
-﻿name: CRM AI CORE CI
+name: CRM AI CORE CI
 
 on:
   push:
@@ -15,6 +15,12 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-test.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-test-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-test-service-role-key
+      MERCADOPAGO_ACCESS_TOKEN: ci-test-mercadopago-token
 
     steps:
       - name: Checkout
