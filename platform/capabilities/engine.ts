@@ -56,13 +56,61 @@ function serializeActivityData(
   } catch {
 
     return {
-
       serializationError:
         "Activity data could not be serialized.",
-
     };
 
   }
+
+}
+
+/*
+---------------------------------------
+ERROR HELPERS
+---------------------------------------
+*/
+
+function getErrorMessage(
+  error: unknown
+): string {
+
+  if (error instanceof Error) {
+
+    return error.message;
+
+  }
+
+  if (typeof error === "string") {
+
+    return error;
+
+  }
+
+  try {
+
+    return JSON.stringify(
+      error
+    );
+
+  } catch {
+
+    return "Unknown capability execution error.";
+
+  }
+
+}
+
+function getErrorStack(
+  error: unknown
+): string | undefined {
+
+  if (error instanceof Error) {
+
+    return error.stack;
+
+  }
+
+  return undefined;
 
 }
 
@@ -103,7 +151,27 @@ export class CapabilityEngine {
         id
       );
 
+    /*
+    ---------------------------------------
+    CAPABILITY NOT FOUND
+    ---------------------------------------
+    */
+
     if (!capability) {
+
+      console.error(
+        "[AUTHORITY TRACE] CAPABILITY NOT FOUND",
+        JSON.stringify({
+          capabilityId:
+            id,
+
+          workflowId:
+            request.workflowId,
+
+          intent:
+            request.intent,
+        })
+      );
 
       return {
 
@@ -116,17 +184,148 @@ export class CapabilityEngine {
 
     }
 
+    /*
+    ---------------------------------------
+    CAPABILITY START
+    ---------------------------------------
+    */
+
+    console.log(
+      "[AUTHORITY TRACE] CAPABILITY START",
+      JSON.stringify({
+
+        capabilityId:
+          id,
+
+        capabilityName:
+          capability.name,
+
+        workflowId:
+          request.workflowId,
+
+        intent:
+          request.intent,
+
+        organizationId:
+          request.organizationId,
+
+        workspaceId:
+          request.workspaceId,
+
+        userId:
+          request.userId,
+
+      })
+    );
+
     const startedAt =
       Date.now();
 
-    const result =
-      await capability.execute(
-        request
+    let result: CapabilityResult;
+
+    /*
+    ---------------------------------------
+    CAPABILITY EXECUTION
+    ---------------------------------------
+    */
+
+    try {
+
+      result =
+        await capability.execute(
+          request
+        );
+
+    } catch (error) {
+
+      const durationMs =
+        Date.now() -
+        startedAt;
+
+      console.error(
+        "[AUTHORITY TRACE] CAPABILITY EXECUTION ERROR",
+        {
+
+          capabilityId:
+            id,
+
+          capabilityName:
+            capability.name,
+
+          workflowId:
+            request.workflowId,
+
+          intent:
+            request.intent,
+
+          organizationId:
+            request.organizationId,
+
+          workspaceId:
+            request.workspaceId,
+
+          userId:
+            request.userId,
+
+          error:
+            getErrorMessage(
+              error
+            ),
+
+          stack:
+            getErrorStack(
+              error
+            ),
+
+          durationMs,
+
+        }
       );
+
+      return {
+
+        success: false,
+
+        message:
+          `Capability '${id}' falló durante la ejecución: ${getErrorMessage(error)}`,
+
+      };
+
+    }
 
     const durationMs =
       Date.now() -
       startedAt;
+
+    /*
+    ---------------------------------------
+    CAPABILITY RESULT
+    ---------------------------------------
+    */
+
+    console.log(
+      "[AUTHORITY TRACE] CAPABILITY RESULT",
+      JSON.stringify({
+
+        capabilityId:
+          id,
+
+        workflowId:
+          request.workflowId,
+
+        intent:
+          request.intent,
+
+        success:
+          result.success,
+
+        message:
+          result.message,
+
+        durationMs,
+
+      })
+    );
 
     /*
     ---------------------------------------
@@ -136,47 +335,101 @@ export class CapabilityEngine {
 
     if (request.userId) {
 
-      await activityService.add({
+      try {
 
-        id:
-          crypto.randomUUID(),
+        await activityService.add({
 
-        userId:
-          request.userId,
+          id:
+            crypto.randomUUID(),
 
-        
-        organizationId:
-          request.organizationId!,
+          userId:
+            request.userId,
 
-        workspaceId:
-          request.workspaceId!,workflow:
-          request.workflowId ??
-          id,
+          organizationId:
+            request.organizationId!,
 
-        skill:
-          id,
+          workspaceId:
+            request.workspaceId!,
 
-        status:
-          result.success
-            ? "success"
-            : "error",
+          workflow:
+            request.workflowId ??
+            id,
 
-        message:
-          result.message,
+          skill:
+            id,
 
-        createdAt:
-          new Date(),
+          status:
+            result.success
+              ? "success"
+              : "error",
 
-        durationMs,
+          message:
+            result.message,
 
-        data:
-          serializeActivityData(
-            result.data
-          ),
+          createdAt:
+            new Date(),
 
-      });
+          durationMs,
+
+          data:
+            serializeActivityData(
+              result.data
+            ),
+
+        });
+
+      } catch (error) {
+
+        /*
+        ---------------------------------------
+        ACTIVITY ERROR
+        ---------------------------------------
+
+        Un fallo de Activity Runtime no debe
+        destruir el resultado de la capability.
+        */
+
+        console.error(
+          "[AUTHORITY TRACE] ACTIVITY REGISTRATION ERROR",
+          {
+
+            capabilityId:
+              id,
+
+            workflowId:
+              request.workflowId,
+
+            userId:
+              request.userId,
+
+            organizationId:
+              request.organizationId,
+
+            workspaceId:
+              request.workspaceId,
+
+            error:
+              getErrorMessage(
+                error
+              ),
+
+            stack:
+              getErrorStack(
+                error
+              ),
+
+          }
+        );
+
+      }
 
     }
+
+    /*
+    ---------------------------------------
+    RETURN CAPABILITY RESULT
+    ---------------------------------------
+    */
 
     return result;
 
@@ -199,6 +452,25 @@ export class CapabilityEngine {
         request
       );
 
+    console.log(
+      "[AUTHORITY TRACE] CAPABILITY SELECTION",
+      JSON.stringify({
+
+        capabilityId:
+          selection.capability.id,
+
+        capabilityName:
+          selection.capability.name,
+
+        workflowId:
+          request.workflowId,
+
+        intent:
+          request.intent,
+
+      })
+    );
+
     return this.execute(
 
       selection.capability.id,
@@ -213,4 +485,3 @@ export class CapabilityEngine {
 
 export const capabilityEngine =
   new CapabilityEngine();
-

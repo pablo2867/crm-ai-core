@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   Workflow,
 } from "../types";
 
@@ -11,6 +11,8 @@ export const commandCenterWorkflow: Workflow = {
   metadata: {
 
     enabled: true,
+
+    advanced: true,
 
     priority: 100,
 

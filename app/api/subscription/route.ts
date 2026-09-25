@@ -1,10 +1,11 @@
-﻿import { authEngine } from "@/platform/auth";
+import { authEngine } from "@/platform/auth";
 import { Permissions } from "@/platform/auth/permissions";
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { mercadoPagoAdapter } from "@/platform/payment-provider/mercadopago";
+import { commercialEventService } from "@/platform/services/commercial-events";
 
 const PLAN_CONFIG = {
   starter: {
@@ -63,7 +64,10 @@ if (!user) {
     const organizationId =
       memberships?.[0]?.organization_id;
 
-    if (!organizationId) {
+    const workspaceId =
+      memberships?.[0]?.workspace_id;
+
+    if (!organizationId || !workspaceId) {
       return NextResponse.json({
         success: false,
         step: "MEMBERSHIP",
@@ -96,16 +100,18 @@ if (!user) {
       subscriptions,
     });
   } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "UNKNOWN_ERROR";
+
     return NextResponse.json(
       {
         success: false,
         step: "EXCEPTION",
-        error:
-          error instanceof Error
-            ? error.message
-            : "UNKNOWN_ERROR",
+        error: errorMessage,
       },
-      { status: 500 }
+      { status: errorMessage === "UNAUTHORIZED" ? 401 : 500 }
     );
   }
 }
@@ -185,7 +191,7 @@ if (!user) {
     const { data: memberships, error: membershipError } =
       await supabaseAdmin
         .from("organization_members")
-        .select("organization_id")
+        .select("organization_id, workspace_id")
         .eq("user_id", user.id);
 
     if (membershipError) {
@@ -202,7 +208,10 @@ if (!user) {
     const organizationId =
       memberships?.[0]?.organization_id;
 
-    if (!organizationId) {
+    const workspaceId =
+      memberships?.[0]?.workspace_id;
+
+    if (!organizationId || !workspaceId) {
       return NextResponse.json(
         {
           success: false,
@@ -244,6 +253,20 @@ if (!user) {
     const externalReference =
       `crm-ai-core:${organizationId}:${plan}:${Date.now()}`;
 
+    await commercialEventService.track({
+      userId: user.id,
+      organizationId,
+      workspaceId,
+      eventName: "checkout_started",
+      eventData: {
+        plan,
+        planName: planConfig.name,
+        amount: planConfig.amount,
+        payerEmail,
+        provider: "mercadopago",
+      },
+    });
+
     const subscription =
       await mercadoPagoAdapter.createSubscription({
         providerPlanId,
@@ -255,6 +278,23 @@ if (!user) {
           "http://localhost:3000",
         cardTokenId,
       });
+
+    await commercialEventService.track({
+      userId: user.id,
+      organizationId,
+      workspaceId,
+      eventName: "subscription_created",
+      eventData: {
+        plan,
+        planName: planConfig.name,
+        amount: planConfig.amount,
+        provider: "mercadopago",
+        providerSubscriptionId:
+          subscription.providerSubscriptionId,
+        status: subscription.status,
+        externalReference,
+      },
+    });
 
     /*
      * At this stage we only create the provider subscription.
@@ -273,19 +313,22 @@ if (!user) {
       externalReference,
     });
   } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "UNKNOWN_ERROR";
+
     return NextResponse.json(
       {
         success: false,
         step: "SUBSCRIPTION_CREATE",
-        error:
-          error instanceof Error
-            ? error.message
-            : "UNKNOWN_ERROR",
+        error: errorMessage,
       },
-      { status: 500 }
+      { status: errorMessage === "UNAUTHORIZED" ? 401 : 500 }
     );
   }
 }
+
 
 
 

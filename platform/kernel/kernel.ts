@@ -36,6 +36,7 @@ import type {
   KernelResponse,
 } from "./types";
 
+
 function buildDeterministicSummary(
   workflow: WorkflowResult | null,
   workflowName: string,
@@ -61,34 +62,34 @@ function buildDeterministicSummary(
   const successfulSteps =
     workflow.execution.filter(
       step =>
-        step.success
+        step.success,
     );
 
   const failedSteps =
     workflow.execution.filter(
       step =>
-        !step.success
+        !step.success,
     );
 
   const leadStep =
     successfulSteps.find(
       step =>
         step.skill ===
-        "find-best-lead"
+        "find-best-lead",
     );
 
   const taskStep =
     successfulSteps.find(
       step =>
         step.skill ===
-        "create-task"
+        "create-task",
     );
 
   const followupStep =
     successfulSteps.find(
       step =>
         step.skill ===
-        "generate-followup"
+        "generate-followup",
     );
 
   const leadData =
@@ -121,17 +122,17 @@ function buildDeterministicSummary(
   parts.push(
     planningSuccess
       ? `Workflow "${workflowName}" ejecutado correctamente.`
-      : `Workflow "${workflowName}" ejecutado con errores.`
+      : `Workflow "${workflowName}" ejecutado con errores.`,
   );
 
   if (
     typeof leadName ===
-    "string" &&
+      "string" &&
     leadName.trim()
   ) {
 
     parts.push(
-      `Lead seleccionado: ${leadName}.`
+      `Lead seleccionado: ${leadName}.`,
     );
 
   }
@@ -139,7 +140,7 @@ function buildDeterministicSummary(
   if (taskStep) {
 
     parts.push(
-      "Tarea creada correctamente."
+      "Tarea creada correctamente.",
     );
 
   }
@@ -147,7 +148,7 @@ function buildDeterministicSummary(
   if (followupStep) {
 
     parts.push(
-      "Follow-up generado correctamente."
+      "Follow-up generado correctamente.",
     );
 
   }
@@ -155,7 +156,7 @@ function buildDeterministicSummary(
   if (failedSteps.length > 0) {
 
     parts.push(
-      `${failedSteps.length} paso(s) presentaron errores.`
+      `${failedSteps.length} paso(s) presentaron errores.`,
     );
 
   }
@@ -163,10 +164,11 @@ function buildDeterministicSummary(
   return parts.join(" ");
 }
 
+
 export class AIKernel {
 
   async execute(
-    request: KernelRequest
+    request: KernelRequest,
   ): Promise<KernelResponse> {
 
     /*
@@ -175,16 +177,26 @@ export class AIKernel {
     ---------------------------------------
     */
 
-    const kernelTimingStartedAt = Date.now();
+    const kernelTimingStartedAt =
+      Date.now();
 
-    const contextStartedAt = Date.now();
+    const contextStartedAt =
+      Date.now();
 
     const context =
       request.userId
         ? await contextEngine.build(
-            request.userId
+            request.userId,
           )
         : null;
+
+    console.log(
+      "[KERNEL TIMING] Context:",
+      Date.now() -
+        contextStartedAt,
+      "ms",
+    );
+
 
     /*
     ---------------------------------------
@@ -192,9 +204,8 @@ export class AIKernel {
     ---------------------------------------
     */
 
-    console.log("[KERNEL TIMING] Context:", Date.now() - contextStartedAt, "ms");
-
-    const memoryStartedAt = Date.now();
+    const memoryStartedAt =
+      Date.now();
 
     const memories =
       request.userId
@@ -206,15 +217,22 @@ export class AIKernel {
           })
         : [];
 
+    console.log(
+      "[KERNEL TIMING] Memory:",
+      Date.now() -
+        memoryStartedAt,
+      "ms",
+    );
+
+
     /*
     ---------------------------------------
     Explicit Lead
     ---------------------------------------
     */
 
-    console.log("[KERNEL TIMING] Memory:", Date.now() - memoryStartedAt, "ms");
-
-    const leadStartedAt = Date.now();
+    const leadStartedAt =
+      Date.now();
 
     const lead =
       request.userId &&
@@ -228,22 +246,30 @@ export class AIKernel {
                   request.organizationId,
                 workspaceId:
                   request.workspaceId,
-              }
+              },
             )) ?? undefined
           )
         : undefined;
+
 
     /*
     ---------------------------------------
     Decision Lead
     ---------------------------------------
+
     Explicit lead has priority.
+
     If there is no explicit lead,
     Context Engine bestLead is used.
     ---------------------------------------
     */
 
-    console.log("[KERNEL TIMING] Lead lookup:", Date.now() - leadStartedAt, "ms");
+    console.log(
+      "[KERNEL TIMING] Lead lookup:",
+      Date.now() -
+        leadStartedAt,
+      "ms",
+    );
 
     const decisionLead =
       lead ??
@@ -263,11 +289,12 @@ export class AIKernel {
                     request.organizationId,
                   workspaceId:
                     request.workspaceId,
-                }
+                },
               )) ?? undefined
             )
           : undefined
       );
+
 
     /*
     ---------------------------------------
@@ -275,7 +302,42 @@ export class AIKernel {
     ---------------------------------------
     */
 
-    const decisionStartedAt = Date.now();
+    const decisionStartedAt =
+      Date.now();
+
+
+    /*
+    ---------------------------------------
+    AUTHORITY TRACE
+    ---------------------------------------
+
+    The Kernel receives exactly the intent
+    resolved by the Copilot Router.
+
+    No intent transformation is allowed.
+    ---------------------------------------
+    */
+
+    console.log(
+      "[AUTHORITY TRACE] KERNEL INPUT",
+      JSON.stringify({
+        message:
+          request.message,
+
+        intent:
+          request.intent,
+
+        organizationId:
+          request.organizationId,
+
+        workspaceId:
+          request.workspaceId,
+
+        moduleId:
+          request.moduleId,
+      }),
+    );
+
 
     let decision;
 
@@ -306,6 +368,7 @@ export class AIKernel {
 
             ...request.context,
 
+
             /*
             ---------------------------------------
             Selected Lead
@@ -315,6 +378,7 @@ export class AIKernel {
             lead:
               decisionLead,
 
+
             /*
             ---------------------------------------
             Full CRM Context
@@ -322,6 +386,7 @@ export class AIKernel {
             */
 
             context,
+
 
             /*
             ---------------------------------------
@@ -335,6 +400,45 @@ export class AIKernel {
 
         });
 
+
+      /*
+      ---------------------------------------
+      AUTHORITY TRACE
+      ---------------------------------------
+
+      Decision Engine returns the workflow
+      selected for the received intent.
+      ---------------------------------------
+      */
+
+      console.log(
+        "[AUTHORITY TRACE] DECISION OUTPUT",
+        JSON.stringify({
+          requestIntent:
+            request.intent,
+
+          workflowId:
+            decision?.workflow?.id ??
+            null,
+
+          workflowName:
+            decision?.workflow?.name ??
+            null,
+
+          confidence:
+            decision?.confidence ??
+            null,
+
+          margin:
+            decision?.margin ??
+            null,
+
+          status:
+            decision?.status ??
+            null,
+        }),
+      );
+
     } catch (error) {
 
       const message =
@@ -344,7 +448,7 @@ export class AIKernel {
 
       console.error(
         "KERNEL_DECISION_ERROR:",
-        error
+        error,
       );
 
       return {
@@ -387,15 +491,22 @@ export class AIKernel {
 
     }
 
+
     /*
     ---------------------------------------
     Validation Context
     ---------------------------------------
     */
 
-    console.log("[KERNEL TIMING] Decision:", Date.now() - decisionStartedAt, "ms");
+    console.log(
+      "[KERNEL TIMING] Decision:",
+      Date.now() -
+        decisionStartedAt,
+      "ms",
+    );
 
-    const validationStartedAt = Date.now();
+    const validationStartedAt =
+      Date.now();
 
     const validationContext =
       buildValidationContext({
@@ -412,16 +523,17 @@ export class AIKernel {
         metadata: {
 
           ...request.context,
+
           organizationId:
             request.organizationId,
 
           workspaceId:
             request.workspaceId,
 
-
           context,
 
           memories,
+
 
           /*
           ---------------------------------------
@@ -452,6 +564,7 @@ export class AIKernel {
 
       });
 
+
     /*
     ---------------------------------------
     Validation Engine
@@ -463,20 +576,28 @@ export class AIKernel {
       JSON.stringify(
         validationContext.metadata.decisionPolicy,
         null,
-        2
-      )
+        2,
+      ),
     );
+
     console.log(
       "KERNEL_POLICY:",
       JSON.stringify(
         validationContext.metadata.decisionPolicy,
         null,
-        2
-      )
+        2,
+      ),
     );
-    console.log("[KERNEL TIMING] Validation context:", Date.now() - validationStartedAt, "ms");
 
-    const validationEngineStartedAt = Date.now();
+    console.log(
+      "[KERNEL TIMING] Validation context:",
+      Date.now() -
+        validationStartedAt,
+      "ms",
+    );
+
+    const validationEngineStartedAt =
+      Date.now();
 
     const validation =
       await validationEngine.validate({
@@ -488,6 +609,7 @@ export class AIKernel {
           validationContext,
 
       });
+
 
     /*
     ---------------------------------------
@@ -528,16 +650,14 @@ export class AIKernel {
 
           text:
             validation.results
-
               .map(
                 result =>
-                  result.reason ?? ""
+                  result.reason ??
+                  "",
               )
-
               .filter(
-                Boolean
+                Boolean,
               )
-
               .join("\n"),
 
         },
@@ -546,18 +666,40 @@ export class AIKernel {
 
     }
 
+
+    console.log(
+      "[KERNEL TIMING] Validation:",
+      Date.now() -
+        validationEngineStartedAt,
+      "ms",
+    );
+
+
     /*
     ---------------------------------------
     Planner
     ---------------------------------------
     */
 
-    const plannerStartedAt = Date.now();
+    const plannerStartedAt =
+      Date.now();
 
     const plan =
       planner.createPlan({
 
         ...request,
+
+        /*
+        ---------------------------------------
+        CRITICAL AUTHORITY RULE
+        ---------------------------------------
+
+        The Planner must receive exactly the
+        workflow returned by Decision Engine.
+
+        It must not resolve another workflow.
+        ---------------------------------------
+        */
 
         workflow:
           decision.workflow,
@@ -565,6 +707,7 @@ export class AIKernel {
         context: {
 
           ...request.context,
+
 
           /*
           ---------------------------------------
@@ -575,6 +718,7 @@ export class AIKernel {
           lead:
             decisionLead,
 
+
           /*
           ---------------------------------------
           Full Context
@@ -582,6 +726,7 @@ export class AIKernel {
           */
 
           context,
+
 
           /*
           ---------------------------------------
@@ -595,15 +740,105 @@ export class AIKernel {
 
       });
 
+
+    /*
+    ---------------------------------------
+    AUTHORITY TRACE
+    ---------------------------------------
+
+    Verify that the workflow selected by the
+    Decision Engine is exactly the workflow
+    stored in the ExecutionPlan.
+
+    This prevents hidden workflow substitution.
+    ---------------------------------------
+    */
+
+    console.log(
+      "[AUTHORITY TRACE] KERNEL PLAN",
+      JSON.stringify({
+        decisionWorkflowId:
+          decision.workflow?.id ??
+          null,
+
+        decisionWorkflowName:
+          decision.workflow?.name ??
+          null,
+
+        requestIntent:
+          request.intent,
+
+        planGoal:
+          plan.goal,
+
+        planExecution:
+          plan.execution.map(
+            step => ({
+              workflowId:
+                step.workflowId,
+
+              capabilityId:
+                step.capabilityId,
+
+              priority:
+                step.priority,
+            }),
+          ),
+
+        workflowMatch:
+          plan.execution.length === 1 &&
+          plan.execution[0]?.workflowId ===
+            decision.workflow?.id,
+
+      }, null, 2),
+    );
+
+
+    console.log(
+      "[KERNEL TIMING] Planner:",
+      Date.now() -
+        plannerStartedAt,
+      "ms",
+    );
+
+
     /*
     ---------------------------------------
     Planner Executor
     ---------------------------------------
     */
 
-    console.log("[KERNEL TIMING] Planner:", Date.now() - plannerStartedAt, "ms");
+    const executorStartedAt =
+      Date.now();
 
-    const executorStartedAt = Date.now();
+
+    /*
+    ---------------------------------------
+    AUTHORITY TRACE
+    ---------------------------------------
+    */
+
+    console.log(
+      "[AUTHORITY TRACE] KERNEL → PLANNER EXECUTOR",
+      JSON.stringify({
+        decisionWorkflowId:
+          decision.workflow?.id ??
+          null,
+
+        planWorkflowIds:
+          plan.execution.map(
+            step =>
+              step.workflowId,
+          ),
+
+        executionCount:
+          plan.execution.length,
+
+        intent:
+          request.intent,
+      }, null, 2),
+    );
+
 
     const planning =
       await plannerExecutor.execute({
@@ -613,6 +848,7 @@ export class AIKernel {
         context: {
 
           ...request.context,
+
           organizationId:
             request.organizationId,
 
@@ -629,6 +865,7 @@ export class AIKernel {
           lead:
             decisionLead,
 
+
           /*
           ---------------------------------------
           Full Context
@@ -636,6 +873,7 @@ export class AIKernel {
           */
 
           context,
+
 
           /*
           ---------------------------------------
@@ -645,19 +883,79 @@ export class AIKernel {
 
           memories,
 
+          /*
+          ---------------------------------------
+          Identity
+          ---------------------------------------
+          */
+
           userId:
             request.userId,
 
           leadId:
             request.leadId,
 
-
           moduleId:
             request.moduleId,
+
+          /*
+          ---------------------------------------
+          Authority
+          ---------------------------------------
+          */
+
+          message:
+            request.message,
+
+          question:
+            request.message,
+
+          intent:
+            request.intent,
 
         },
 
       });
+
+
+    /*
+    ---------------------------------------
+    Planner Execution Trace
+    ---------------------------------------
+    */
+
+    console.log(
+      "[AUTHORITY TRACE] PLANNER EXECUTOR RESULT",
+      JSON.stringify({
+        success:
+          planning.success,
+
+        executedSteps:
+          planning.executedSteps,
+
+        completed:
+          planning.completed,
+
+        failedStep:
+          planning.failedStep ??
+          null,
+
+        planExecution:
+          planning.plan.execution.map(
+            step => ({
+              workflowId:
+                step.workflowId,
+
+              capabilityId:
+                step.capabilityId,
+
+              priority:
+                step.priority,
+            }),
+          ),
+      }, null, 2),
+    );
+
 
     /*
     ---------------------------------------
@@ -665,9 +963,20 @@ export class AIKernel {
     ---------------------------------------
     */
 
-    console.log("[KERNEL TIMING] Planner Executor:", Date.now() - executorStartedAt, "ms");
+    console.log(
+      "[KERNEL TIMING] Planner Executor:",
+      Date.now() -
+        executorStartedAt,
+      "ms",
+    );
 
-    console.log("[KERNEL TIMING] TOTAL:", Date.now() - kernelTimingStartedAt, "ms");
+    console.log(
+      "[KERNEL TIMING] TOTAL:",
+      Date.now() -
+        kernelTimingStartedAt,
+      "ms",
+    );
+
 
     const workflow =
       (
@@ -676,10 +985,12 @@ export class AIKernel {
           | undefined
       ) ?? null;
 
+
     /*
     ---------------------------------------
     Deterministic Kernel Summary
     ---------------------------------------
+
     The Kernel no longer calls Ollama
     merely to describe the execution.
     ---------------------------------------
@@ -696,6 +1007,7 @@ export class AIKernel {
 
       );
 
+
     const summary = {
 
       success:
@@ -711,6 +1023,7 @@ export class AIKernel {
         summaryText,
 
     };
+
 
     /*
     ---------------------------------------
@@ -769,6 +1082,7 @@ export class AIKernel {
 
     }
 
+
     /*
     ---------------------------------------
     Kernel Response
@@ -798,6 +1112,7 @@ export class AIKernel {
   }
 
 }
+
 
 export const aiKernel =
   new AIKernel();

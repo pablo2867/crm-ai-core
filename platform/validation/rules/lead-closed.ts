@@ -14,26 +14,47 @@ export class LeadClosedRule
     request: ValidationRequest
   ): ValidationResult {
 
-    const lead =
-      request.context.lead;
+    // ==========================================
+    // La regla solo aplica a workflows comerciales
+    // que realmente operan sobre leads.
+    // ==========================================
 
-    // ===============================
-    // No hay lead
-    // ===============================
+    const workflowId =
+      request.workflow.id;
 
-    if (!lead) {
+    const workflowCategory =
+      request.workflow.metadata?.category;
+
+    const isSalesWorkflow =
+      workflowCategory === "sales" ||
+      workflowId.startsWith("sales-");
+
+    if (!isSalesWorkflow) {
 
       return {
-
         valid: true,
-
       };
 
     }
 
-    // ===============================
+    const lead =
+      request.context.lead;
+
+    // ==========================================
+    // No hay lead
+    // ==========================================
+
+    if (!lead) {
+
+      return {
+        valid: true,
+      };
+
+    }
+
+    // ==========================================
     // Lead cerrado
-    // ===============================
+    // ==========================================
 
     const status =
       lead.status?.toLowerCase();
@@ -42,13 +63,9 @@ export class LeadClosedRule
       lead.pipeline_stage?.toLowerCase();
 
     if (
-
       status === "closed" ||
-
       status === "cerrado" ||
-
       pipelineStage === "closed_won"
-
     ) {
 
       return {
@@ -68,9 +85,9 @@ export class LeadClosedRule
 
     }
 
-    // ===============================
+    // ==========================================
     // Todo correcto
-    // ===============================
+    // ==========================================
 
     return {
 

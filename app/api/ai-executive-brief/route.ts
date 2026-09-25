@@ -1,4 +1,6 @@
-﻿import { Permissions } from "@/platform/auth/permissions";
+﻿import { planEnforcementEngine } from "@/platform/billing/enforcement";
+import { billingEngine } from "@/platform/billing";
+import { Permissions } from "@/platform/auth/permissions";
 import {
   NextResponse,
 } from "next/server";
@@ -48,12 +50,48 @@ export async function GET() {
       });
 
     }
-
-    
     const tenant =
       await authEngine.getTenant();
 
-    
+    /*
+     * SaaS Commercial Enforcement
+     *
+     * Executive Intelligence requiere
+     * el entitlement correspondiente al plan.
+     */
+    const subscription =
+      await billingEngine.get(
+        tenant.organizationId
+      );
+
+    if (!subscription) {
+      throw new Error(
+        "SUBSCRIPTION_NOT_FOUND"
+      );
+    }
+
+    const entitlements =
+      billingEngine.getEntitlements(
+        subscription.plan
+      );
+
+    const enforcement =
+      planEnforcementEngine.check(
+        "executive_intelligence",
+        {
+          organizationId:
+            tenant.organizationId,
+          entitlement:
+            entitlements,
+        }
+      );
+
+    if (!enforcement.allowed) {
+      throw new Error(
+        enforcement.reason ??
+          "EXECUTIVE_INTELLIGENCE_NOT_INCLUDED"
+      );
+    }
     await authEngine.requirePermission(Permissions.AI_EXECUTE);
 
     const {
@@ -243,6 +281,7 @@ ${context}
   }
 
 }
+
 
 
 

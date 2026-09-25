@@ -19,14 +19,17 @@ export async function GET() {
     }
 
     const tenant =
-    await authEngine.getTenant();
+      await authEngine.getTenant();
 
-  const { data: leads, error } =
+    const { data: leads, error } =
       await supabaseAdmin
         .from("leads")
         .select(`
           id,
           name,
+          company,
+          email,
+          phone,
           ai_score,
           ai_temperature,
           close_probability,
@@ -34,8 +37,14 @@ export async function GET() {
           status
         `)
         .eq("user_id", user.id)
-      .eq("organization_id", tenant.organizationId)
-      .eq("workspace_id", tenant.workspaceId);
+        .eq(
+          "organization_id",
+          tenant.organizationId
+        )
+        .eq(
+          "workspace_id",
+          tenant.workspaceId
+        );
 
     if (error) {
       throw error;
@@ -84,7 +93,7 @@ export async function GET() {
         (a, b) =>
           (b.ai_score || 0) -
           (a.ai_score || 0)
-      )[0];
+      )[0] || null;
 
     const riskLeads =
       leads?.filter(
@@ -97,9 +106,7 @@ export async function GET() {
       forecastRevenue,
       hotLeads,
       conversionRate,
-      bestLead:
-        bestLead?.name ||
-        "Sin datos",
+      bestLead,
       bestLeadId:
         bestLead?.id || null,
       score:
@@ -121,6 +128,3 @@ export async function GET() {
     });
   }
 }
-
-
-

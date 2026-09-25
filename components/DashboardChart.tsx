@@ -85,7 +85,7 @@ export default function DashboardChart({
           Performance Dashboard
         </h2>
 
-        <div className="grid grid-cols-3 gap-4 mt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
           {data.map((item) => (
             <div
               key={item.name}
@@ -279,4 +279,5 @@ export default function DashboardChart({
 
 
                
+
 

@@ -25,7 +25,7 @@ export class MarketingAgent {
 
       data: {
         recommendations: [
-          "Diseñar campaÃ±a",
+          "Diseñar campaña",
           "Segmentar audiencia",
           "Crear embudo",
           "Generar contenido",
@@ -38,3 +38,4 @@ export class MarketingAgent {
 
 export const marketingAgent =
   new MarketingAgent();
+

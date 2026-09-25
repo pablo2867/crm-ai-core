@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 interface Props {
   data: any;
@@ -9,8 +9,9 @@ export default function AIActionCenter({
 }: Props) {
 
   const bestLead =
-    data?.bestLead ||
-    "Sin datos";
+    typeof data?.bestLead === "object" && data?.bestLead !== null
+      ? data.bestLead.name || "Sin datos"
+      : data?.bestLead || "Sin datos";
 
   const probability =
     data?.probability || 0;
@@ -38,7 +39,7 @@ export default function AIActionCenter({
       </p>
 
       <h2 className="text-2xl font-black mt-3">
-        Acción Recomendada
+        Acci�n Recomendada
       </h2>
 
       <div className="mt-6">
@@ -52,7 +53,7 @@ export default function AIActionCenter({
         >
 
           <p className="text-zinc-400">
-            🎯 Lead Prioritario
+            ?? Lead Prioritario
           </p>
 
           <h3 className="text-2xl font-bold mt-2">

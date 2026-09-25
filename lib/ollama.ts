@@ -1,4 +1,4 @@
-﻿export type OllamaErrorCode =
+export type OllamaErrorCode =
   | "TIMEOUT"
   | "CONNECTION_ERROR"
   | "HTTP_ERROR"
@@ -27,7 +27,7 @@ const DEFAULT_MODEL = "qwen2.5:3b";
 const OLLAMA_URL =
   "http://127.0.0.1:11434/api/generate";
 
-const TIMEOUT_MS = 60000;
+const TIMEOUT_MS = 120000;
 
 /*
 ---------------------------------------

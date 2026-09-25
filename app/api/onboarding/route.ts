@@ -6,6 +6,7 @@ import { organizationEngine } from "@/platform/organization";
 import { workspaceEngine } from "@/platform/workspace";
 import { membershipEngine } from "@/platform/membership";
 import { billingEngine } from "@/platform/billing";
+import { commercialEventService } from "@/platform/services/commercial-events";
 
 export async function POST(req: Request) {
   try {

@@ -1,6 +1,8 @@
 ﻿import { leadRepository } from "@/platform/repositories/lead";
 import { billingEngine } from "@/platform/billing";
 import { planEnforcementEngine } from "@/platform/billing/enforcement";
+import { eventEmitter, Events } from "@/platform/events";
+import { salesAgent } from "@/platform/agents/sales";
 
 import type {
   CreateLeadRequest,
@@ -122,7 +124,49 @@ export class LeadService {
         closeProbability: aiScore,
       });
 
-    return {
+    eventEmitter.emit(
+      Events.LEAD_CREATED,
+      {
+        id: data.id,
+        name: data.name,
+        user_id: data.user_id,
+        ai_temperature: data.ai_temperature,
+      },
+      {
+        source: "LeadService",
+        metadata: {
+          userId: request.userId,
+          organizationId: request.organizationId,
+          workspaceId: request.workspaceId,
+        },
+      },
+    );
+    
+    if (
+      request.userId &&
+      request.organizationId &&
+      request.workspaceId &&
+      data.id
+    ) {
+      await salesAgent.execute({
+        message:
+          `Lead creado: ${data.name ?? data.id}. Ejecutar seguimiento comercial automático.`,
+        intent:
+          "sales.followup",
+        userId:
+          request.userId,
+        organizationId:
+          request.organizationId,
+        workspaceId:
+          request.workspaceId,
+        context: {
+          trigger: "lead.created",
+          leadId: data.id,
+          leadName: data.name,
+          aiTemperature: data.ai_temperature,
+        },
+      });
+    }return {
       data,
       aiScore,
       aiTemperature,
@@ -167,4 +211,6 @@ export class LeadService {
 
 export const leadService =
   new LeadService();
+
+
 

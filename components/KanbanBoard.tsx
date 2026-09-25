@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   DragDropContext,
@@ -62,7 +62,7 @@ export default function KanbanBoard({
   return (
     <DragDropContext onDragEnd={onDragEnd}>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         {Object.entries(columns).map(
           ([columnId, items]) => (

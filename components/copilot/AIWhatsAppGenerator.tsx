@@ -2,27 +2,124 @@
 
 import { useState } from "react";
 
+type Lead = {
+  id?: number;
+  name?: string;
+  company?: string;
+  email?: string;
+  phone?: string | null;
+  status?: string;
+  ai_score?: number;
+  ai_temperature?: string;
+  close_probability?: number;
+  estimated_revenue?: number;
+};
+
+type WhatsAppType =
+  | "followup"
+  | "reactivation"
+  | "closing";
+
 export default function AIWhatsAppGenerator() {
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [whatsapp, setWhatsapp] = useState("");
+  const [lead, setLead] = useState<Lead | null>(null);
+  const [sendResult, setSendResult] = useState("");
+  const [debug, setDebug] = useState("");
 
-  async function generateWhatsApp(
-    type: "followup" | "reactivation" | "closing"
-  ) {
+  async function getLeadWithPhone(): Promise<Lead | null> {
     try {
-      setLoading(true);
+      setDebug("Buscando leads...");
 
-      const dashboardResponse = await fetch(
-        "/api/copilot-dashboard",
-        { cache: "no-store" }
+      const response = await fetch("/api/leads", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        setDebug(
+          `Error obteniendo leads: ${response.status}`
+        );
+        return null;
+      }
+
+      const data = await response.json();
+
+      const leads: Lead[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.leads)
+          ? data.leads
+          : [];
+
+      const leadWithPhone = leads.find(
+        (item) =>
+          typeof item?.phone === "string" &&
+          item.phone.trim().length > 0
       );
 
-      const dashboard = await dashboardResponse.json();
+      if (leadWithPhone) {
+        setDebug(
+          `Lead encontrado: ${
+            leadWithPhone.name || "Sin nombre"
+          }`
+        );
 
-      if (!dashboard.success) {
-        setWhatsapp("No fue posible obtener el lead.");
+        return leadWithPhone;
+      }
+
+      setDebug(
+        "No se encontró ningún lead con teléfono."
+      );
+
+      return null;
+    } catch (error) {
+      console.error(
+        "GET_LEAD_WITH_PHONE_ERROR",
+        error
+      );
+
+      setDebug(
+        "Error consultando los leads."
+      );
+
+      return null;
+    }
+  }
+
+  async function generateWhatsApp(
+    type: WhatsAppType
+  ) {
+    if (loading) {
+      return;
+    }
+
+    setLoading(true);
+    setWhatsapp("");
+    setSendResult("");
+    setLead(null);
+    setDebug(
+      `Botón ${type} ejecutado correctamente.`
+    );
+
+    try {
+      const selectedLead =
+        await getLeadWithPhone();
+
+      if (!selectedLead) {
+        setWhatsapp(
+          "No hay ningún lead con teléfono registrado para WhatsApp."
+        );
         return;
       }
+
+      setLead(selectedLead);
+
+      setDebug(
+        `Generando WhatsApp para ${
+          selectedLead.name || "lead"
+        }...`
+      );
 
       const response = await fetch(
         "/api/whatsapp-generator",
@@ -32,7 +129,7 @@ export default function AIWhatsAppGenerator() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            lead: dashboard.bestLead,
+            lead: selectedLead,
             type,
           }),
         }
@@ -40,108 +137,209 @@ export default function AIWhatsAppGenerator() {
 
       const data = await response.json();
 
-      if (data.success) {
-        setWhatsapp(data.whatsapp);
-      } else {
-        setWhatsapp("No fue posible generar WhatsApp.");
+      if (!response.ok || !data.success) {
+        setWhatsapp(
+          data?.error ||
+            "No fue posible generar WhatsApp."
+        );
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      setWhatsapp("Error generando WhatsApp.");
+
+      setWhatsapp(data.whatsapp || "");
+
+      setDebug(
+        `WhatsApp generado para ${
+          selectedLead.name || "lead"
+        }.`
+      );
+    } catch (error) {
+      console.error(
+        "GENERATE_WHATSAPP_ERROR",
+        error
+      );
+
+      setWhatsapp(
+        "Error generando WhatsApp."
+      );
+
+      setDebug(
+        "Error ejecutando el generador."
+      );
     } finally {
       setLoading(false);
     }
   }
 
+  async function sendWhatsApp() {
+    if (sending) {
+      return;
+    }
+
+    if (!lead?.phone) {
+      setSendResult(
+        "Este lead no tiene teléfono registrado."
+      );
+      return;
+    }
+
+    if (!whatsapp.trim()) {
+      setSendResult(
+        "Primero genera el mensaje de WhatsApp."
+      );
+      return;
+    }
+
+    try {
+      setSending(true);
+      setSendResult("");
+
+      const response = await fetch(
+        "/api/whatsapp/send",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            to: lead.phone,
+            message: whatsapp,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setSendResult(
+          data?.error ||
+            "No fue posible enviar el WhatsApp."
+        );
+        return;
+      }
+
+      setSendResult(
+        `WhatsApp enviado correctamente a ${
+          lead.name || lead.phone
+        }.`
+      );
+    } catch (error) {
+      console.error(
+        "SEND_WHATSAPP_ERROR",
+        error
+      );
+
+      setSendResult(
+        "Error enviando WhatsApp."
+      );
+    } finally {
+      setSending(false);
+    }
+  }
+
   return (
-    <div className="
-      bg-gradient-to-br
-      from-green-500/10
-      to-emerald-500/10
-      border
-      border-green-500/20
-      rounded-3xl
-      p-6
-      mb-8
-    ">
-      <p className="text-green-400 text-sm">
-        AI WhatsApp Generator
-      </p>
+    <section className="mb-6 rounded-2xl border border-zinc-800 bg-[#111113] p-6 text-white">
+      <div className="mb-5">
+        <h2 className="text-xl font-semibold">
+          AI WhatsApp Generator
+        </h2>
 
-      <h2 className="text-2xl font-black mt-3">
-        Generador de WhatsApp
-      </h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          Generador de WhatsApp
+        </p>
+      </div>
 
-      <div className="
-        flex
-        flex-wrap
-        gap-3
-        mt-5
-      ">
+      <div className="mb-5 flex flex-wrap gap-3">
         <button
-          onClick={() => generateWhatsApp("followup")}
+          type="button"
           disabled={loading}
-          className="
-            px-4
-            py-2
-            rounded-xl
-            bg-green-500
-            text-white
-            font-semibold
-          "
+          onClick={() =>
+            void generateWhatsApp("followup")
+          }
+          className="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Seguimiento
         </button>
 
         <button
-          onClick={() => generateWhatsApp("reactivation")}
+          type="button"
           disabled={loading}
-          className="
-            px-4
-            py-2
-            rounded-xl
-            bg-emerald-500
-            text-white
-            font-semibold
-          "
+          onClick={() =>
+            void generateWhatsApp("reactivation")
+          }
+          className="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Reactivación
         </button>
 
         <button
-          onClick={() => generateWhatsApp("closing")}
+          type="button"
           disabled={loading}
-          className="
-            px-4
-            py-2
-            rounded-xl
-            bg-lime-500
-            text-black
-            font-semibold
-          "
+          onClick={() =>
+            void generateWhatsApp("closing")
+          }
+          className="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cierre
         </button>
       </div>
 
       {loading && (
-        <p className="mt-5 text-zinc-400">
-          Generando WhatsApp...
-        </p>
+        <div className="mb-4 rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-sm text-zinc-300">
+          Generando mensaje...
+        </div>
+      )}
+
+      {debug && (
+        <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-400">
+          {debug}
+        </div>
+      )}
+
+      {lead && (
+        <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+          <div className="font-medium">
+            Lead seleccionado:{" "}
+            {lead.name || "Sin nombre"}
+          </div>
+
+          <div className="mt-1 text-sm text-zinc-400">
+            Teléfono: {lead.phone}
+          </div>
+        </div>
       )}
 
       {whatsapp && (
-        <div className="
-          mt-6
-          p-4
-          rounded-2xl
-          bg-black/30
-          whitespace-pre-wrap
-          text-zinc-300
-        ">
-          {whatsapp}
+        <div className="mb-4 rounded-lg border border-zinc-700 bg-zinc-900 p-4">
+          <div className="mb-2 text-xs font-medium uppercase text-zinc-500">
+            Mensaje generado
+          </div>
+
+          <div className="whitespace-pre-wrap text-sm text-zinc-200">
+            {whatsapp}
+          </div>
         </div>
       )}
-    </div>
+
+      <button
+        type="button"
+        onClick={() => void sendWhatsApp()}
+        disabled={
+          sending ||
+          !lead?.phone ||
+          !whatsapp
+        }
+        className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {sending
+          ? "Enviando..."
+          : "📲 Enviar por WhatsApp"}
+      </button>
+
+      {sendResult && (
+        <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-sm">
+          {sendResult}
+        </div>
+      )}
+    </section>
   );
 }

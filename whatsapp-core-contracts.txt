@@ -1,0 +1,968 @@
+===== DIRECTORIOS REPOSITORIES =====
+platform\repositories\lead\index.ts
+platform\repositories\lead\repository.ts
+platform\repositories\lead\types.ts
+platform\repositories\task\index.ts
+platform\repositories\task\repository.ts
+platform\repositories\task\types.ts
+
+===== DIRECTORIOS ACTIVITY =====
+platform\activity\index.ts
+platform\activity\service.ts
+platform\activity\types.ts
+
+==================================================
+FILE: platform/repositories/task/repository.ts
+==================================================
+import {
+  supabaseAdmin,
+} from "@/lib/supabase-admin";
+
+import type {
+  CreateTaskData,
+  FindPendingTaskByLeadData,
+  FindTaskByIdData,
+  ListTasksData,
+  CompleteTaskData,
+  DeleteTaskData,
+} from "./types";
+
+export class TaskRepository {
+
+  async create(task: CreateTaskData) {
+    const {
+      userId,
+      organizationId,
+      workspaceId,
+      leadName,
+      title,
+      description,
+      priority,
+      status,
+      dueDate,
+      completedAt,
+      assignedTo,
+      source,
+      aiGenerated,
+      notes,
+    } = task;
+
+    const { data, error } = await supabaseAdmin
+      .from("tasks")
+      .insert({
+        user_id: userId,
+        organization_id: organizationId,
+        workspace_id: workspaceId,
+        lead_name: leadName,
+        title,
+        description: description ?? "",
+        priority: priority ?? "MEDIUM",
+        status: status ?? "pending",
+        due_date: dueDate ?? null,
+        completed_at: completedAt ?? null,
+        assigned_to: assignedTo ?? null,
+        source: source ?? "pipeline",
+        ai_generated: aiGenerated ?? false,
+        notes: notes ?? null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  }
+
+  async findPendingByLead(task: FindPendingTaskByLeadData) {
+    const {
+      userId,
+      organizationId,
+      workspaceId,
+      leadName,
+    } = task;
+
+    const { data, error } = await supabaseAdmin
+      .from("tasks")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .eq("workspace_id", workspaceId)
+      .eq("lead_name", leadName)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  }
+
+  async findById(task: FindTaskByIdData) {
+    const {
+      id,
+      userId,
+      organizationId,
+      workspaceId,
+    } = task;
+
+    const { data, error } = await supabaseAdmin
+      .from("tasks")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  }
+
+  async list(task: ListTasksData) {
+    const {
+      userId,
+      organizationId,
+      workspaceId,
+      status,
+      limit,
+      offset,
+    } = task;
+
+    let query = supabaseAdmin
+      .from("tasks")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: false });
+
+    if (status) {
+      query = query.eq("status", status);
+    }
+
+    if (typeof limit === "number") {
+      query = query.limit(limit);
+    }
+
+    if (typeof offset === "number") {
+      const rangeEnd =
+        typeof limit === "number"
+          ? offset + limit - 1
+          : offset + 99;
+
+      query = query.range(offset, rangeEnd);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data ?? [];
+  }
+
+  async complete(task: CompleteTaskData) {
+    const {
+      id,
+      userId,
+      organizationId,
+      workspaceId,
+    } = task;
+
+    const { data, error } = await supabaseAdmin
+      .from("tasks")
+      .update({
+        status: "completed",
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .eq("workspace_id", workspaceId)
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  }
+
+  async delete(task: DeleteTaskData) {
+    const {
+      id,
+      userId,
+      organizationId,
+      workspaceId,
+    } = task;
+
+    const { data, error } = await supabaseAdmin
+      .from("tasks")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .eq("workspace_id", workspaceId)
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  }
+}
+
+export const taskRepository = new TaskRepository();
+
+
+==================================================
+FILE: platform/repositories/task/types.ts
+==================================================
+export interface TaskTenantContext {
+  userId: string;
+  organizationId: string;
+  workspaceId: string;
+}
+
+export interface CreateTaskData extends TaskTenantContext {
+  leadName: string;
+  title: string;
+  description?: string;
+  priority?: string;
+  status?: string;
+  dueDate?: string | null;
+  completedAt?: string | null;
+  assignedTo?: string | null;
+  source?: string;
+  aiGenerated?: boolean;
+  notes?: string | null;
+}
+
+export interface FindPendingTaskByLeadData extends TaskTenantContext {
+  leadName: string;
+}
+
+export interface FindTaskByIdData extends TaskTenantContext {
+  id: string | number;
+}
+
+export interface ListTasksData extends TaskTenantContext {
+  status?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface CompleteTaskData extends TaskTenantContext {
+  id: string | number;
+}
+
+export interface DeleteTaskData extends TaskTenantContext {
+  id: string | number;
+}
+
+
+==================================================
+FILE: platform/services/leads/service.ts
+==================================================
+import { leadRepository } from "@/platform/repositories/lead";
+import { billingEngine } from "@/platform/billing";
+import { planEnforcementEngine } from "@/platform/billing/enforcement";
+import { eventEmitter, Events } from "@/platform/events";
+import { salesAgent } from "@/platform/agents/sales";
+
+import type {
+  CreateLeadRequest,
+  CreateLeadResult,
+  UpdateLeadRequest,
+  ChangePipelineRequest,
+  FindLeadRequest,
+  SearchLeadRequest,
+} from "./types";
+
+export class LeadService {
+  async createLead(
+    request: CreateLeadRequest,
+  ): Promise<CreateLeadResult> {
+
+    const count =
+      await leadRepository.countByTenant(
+        request.organizationId,
+        request.workspaceId,
+      );
+
+    const subscription =
+      await billingEngine.get(
+        request.organizationId,
+      );
+
+    if (!subscription) {
+      throw new Error(
+        "SUBSCRIPTION_NOT_FOUND",
+      );
+    }
+
+    const entitlements =
+      billingEngine.getEntitlements(
+        subscription.plan,
+      );
+
+    const enforcement =
+      planEnforcementEngine.check(
+        "leads",
+        {
+          organizationId:
+            request.organizationId,
+          entitlement:
+            entitlements,
+          currentUsage:
+            count ?? 0,
+        },
+      );
+
+    if (!enforcement.allowed) {
+      throw new Error(
+        enforcement.reason ??
+          "LEAD_LIMIT_REACHED",
+      );
+    }
+
+    let aiScore = 60;
+
+    if (
+      request.company &&
+      request.company.length > 3
+    ) {
+      aiScore += 10;
+    }
+
+    if (request.phone) {
+      aiScore += 10;
+    }
+
+    if (
+      request.email?.includes("@gmail")
+    ) {
+      aiScore += 5;
+    }
+
+    if (
+      request.email?.includes("@company")
+    ) {
+      aiScore += 20;
+    }
+
+    let aiTemperature = "WARM";
+
+    if (aiScore >= 85) {
+      aiTemperature = "HOT";
+    } else if (aiScore <= 50) {
+      aiTemperature = "COLD";
+    }
+
+    const aiAnalysis =
+      "Potencial cliente interesado en informaciÃ³n sobre servicios o productos.";
+
+    const aiFollowup =
+      `Hola ${request.name}, seguimos disponibles para ayudarte cuando gustes.`;
+
+    const aiAction =
+      "Enviar seguimiento comercial.";
+
+    const data =
+      await leadRepository.create({
+        name: request.name,
+        company: request.company,
+        email: request.email,
+        phone: request.phone,
+        userId: request.userId,
+        organizationId:
+          request.organizationId,
+        workspaceId:
+          request.workspaceId,
+        status: request.status ?? "Nuevo",
+        pipelineStage: "new",
+        pipelineStageOrder: 1,
+        aiScore,
+        aiTemperature,
+        aiAnalysis,
+        aiFollowup,
+        aiAction,
+        closeProbability: aiScore,
+      });
+
+    eventEmitter.emit(
+      Events.LEAD_CREATED,
+      {
+        id: data.id,
+        name: data.name,
+        user_id: data.user_id,
+        ai_temperature: data.ai_temperature,
+      },
+      {
+        source: "LeadService",
+        metadata: {
+          userId: request.userId,
+          organizationId: request.organizationId,
+          workspaceId: request.workspaceId,
+        },
+      },
+    );
+    
+    if (
+      request.userId &&
+      request.organizationId &&
+      request.workspaceId &&
+      data.id
+    ) {
+      await salesAgent.execute({
+        message:
+          `Lead creado: ${data.name ?? data.id}. Ejecutar seguimiento comercial automático.`,
+        intent:
+          "sales.followup",
+        userId:
+          request.userId,
+        organizationId:
+          request.organizationId,
+        workspaceId:
+          request.workspaceId,
+        context: {
+          trigger: "lead.created",
+          leadId: data.id,
+          leadName: data.name,
+          aiTemperature: data.ai_temperature,
+        },
+      });
+    }return {
+      data,
+      aiScore,
+      aiTemperature,
+      aiAnalysis,
+      aiFollowup,
+      aiAction,
+    };
+  }
+
+  async updateLead(
+    request: UpdateLeadRequest,
+  ) {
+    return leadRepository.update(
+      request,
+    );
+  }
+
+  async changePipeline(
+    request: ChangePipelineRequest,
+  ) {
+    return leadRepository.updateStatus(
+      request,
+    );
+  }
+
+  async findLead(
+    request: FindLeadRequest,
+  ) {
+    return leadRepository.findById(
+      request,
+    );
+  }
+
+  async searchLeads(
+    request: SearchLeadRequest,
+  ) {
+    return leadRepository.search(
+      request,
+    );
+  }
+}
+
+export const leadService =
+  new LeadService();
+
+
+
+
+
+==================================================
+FILE: platform/services/leads/types.ts
+==================================================
+export interface LeadRecord {
+  id: number;
+  name: string;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  userId?: string;
+  organizationId?: string;
+  workspaceId?: string;
+  status?: string;
+  pipelineStage?: string;
+  pipelineStageOrder?: number;
+  aiScore?: number;
+  aiTemperature?: string;
+  aiAnalysis?: string;
+  aiFollowup?: string;
+  aiAction?: string;
+  closeProbability?: number;
+  [key: string]: unknown;
+}
+
+export interface CreateLeadRequest {
+  name: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  userId: string;
+  organizationId: string;
+  workspaceId: string;
+  status?: string;
+}
+
+export interface CreateLeadResult {
+  data: LeadRecord;
+  aiScore: number;
+  aiTemperature: string;
+  aiAnalysis: string;
+  aiFollowup: string;
+  aiAction: string;
+}
+
+export interface UpdateLeadRequest {
+  id: number;
+  userId: string;
+  organizationId: string;
+  workspaceId: string;
+  values: Record<string, unknown>;
+}
+
+export interface ChangePipelineRequest {
+  id: number;
+  userId: string;
+  organizationId: string;
+  workspaceId: string;
+  pipelineStage: string;
+}
+
+export interface FindLeadRequest {
+  id: number;
+  userId: string;
+  organizationId: string;
+  workspaceId: string;
+}
+
+export interface SearchLeadRequest {
+  userId: string;
+  organizationId: string;
+  workspaceId: string;
+  search?: string;
+  status?: string;
+  pipelineStage?: string;
+  aiTemperature?: string;
+  minScore?: number;
+  maxScore?: number;
+  limit?: number;
+  offset?: number;
+  orderBy?: string;
+  ascending?: boolean;
+}
+
+
+==================================================
+FILE: platform/tenant/types.ts
+==================================================
+import type {
+  Role,
+} from "@/platform/auth/roles";
+
+import type {
+  Permission,
+} from "@/platform/auth/permissions";
+
+export interface TenantContext {
+
+  organizationId: string;
+
+  workspaceId: string;
+
+  userId: string;
+
+  role: Role;
+
+  permissions: readonly Permission[];
+
+}
+
+export interface ResolveTenantRequest {
+
+  userId: string;
+
+}
+
+export interface ResolveTenantResult {
+
+  success: boolean;
+
+  tenant?: TenantContext;
+
+  error?: string;
+
+}
+
+
+==================================================
+FILE: platform/tenant/resolver.ts
+==================================================
+import {
+  membershipEngine,
+} from "@/platform/membership";
+
+import {
+  organizationEngine,
+} from "@/platform/organization";
+
+import {
+  workspaceEngine,
+} from "@/platform/workspace";
+
+import {
+  Roles,
+} from "@/platform/rbac/roles";
+
+import type {
+  Role,
+} from "@/platform/auth/roles";
+
+import type {
+  Permission,
+} from "@/platform/auth/permissions";
+
+import type {
+  ResolveTenantRequest,
+  ResolveTenantResult,
+  TenantContext,
+} from "./types";
+
+export class TenantResolver {
+
+  async resolve(
+    request: ResolveTenantRequest,
+  ): Promise<ResolveTenantResult> {
+
+    const membership =
+      await membershipEngine.get({
+        userId: request.userId,
+      });
+
+    if (!membership) {
+      return {
+        success: false,
+        error: "TENANT_NOT_FOUND",
+      };
+    }
+
+    const organization =
+      await organizationEngine.getById({
+        id: membership.organizationId,
+      });
+
+    if (!organization) {
+      return {
+        success: false,
+        error: "ORGANIZATION_NOT_FOUND",
+      };
+    }
+
+    const workspace =
+      await workspaceEngine.getById({
+        id: membership.workspaceId,
+      });
+
+    if (!workspace) {
+      return {
+        success: false,
+        error: "WORKSPACE_NOT_FOUND",
+      };
+    }
+
+    const role =
+      membership.role as Role;
+
+    const roleDefinition =
+      Roles[role];
+
+    if (!roleDefinition) {
+      return {
+        success: false,
+        error: "INVALID_ROLE",
+      };
+    }
+
+    const permissions:
+      readonly Permission[] =
+        roleDefinition.permissions;
+
+    const tenant: TenantContext = {
+
+      organizationId:
+        membership.organizationId,
+
+      workspaceId:
+        membership.workspaceId,
+
+      userId:
+        membership.userId,
+
+      role,
+
+      permissions,
+
+    };
+
+    return {
+      success: true,
+      tenant,
+    };
+  }
+}
+
+export const tenantResolver =
+  new TenantResolver();
+
+
+==================================================
+FILE: platform/tenant/engine.ts
+==================================================
+import {
+  tenantResolver,
+} from "./resolver";
+
+import type {
+  TenantContext,
+} from "./types";
+
+export class TenantEngine {
+
+  async getTenant(
+    userId: string,
+  ): Promise<TenantContext> {
+
+    const result =
+      await tenantResolver.resolve({
+
+        userId,
+
+      });
+
+    if (
+
+      !result.success ||
+
+      !result.tenant
+
+    ) {
+
+      throw new Error(
+        result.error ??
+        "TENANT_NOT_FOUND",
+      );
+
+    }
+
+    return result.tenant;
+
+  }
+
+  clear(
+    _userId?: string,
+  ) {
+
+    /*
+    TenantEngine no mantiene cache.
+    Este método se conserva por compatibilidad
+    con llamadas existentes.
+    */
+
+    return;
+
+  }
+
+}
+
+export const tenantEngine =
+  new TenantEngine();
+
+
+==================================================
+FILE: platform/services/index.ts
+==================================================
+/*
+=========================================
+CRM AI CORE
+Services Registry
+=========================================
+*/
+
+export * from "./lead-service";
+export * from "./task-service";
+export * from "./followup-service";
+export * from "./email-service";
+
+export * from "./actions";
+export * from "./analytics";
+export * from "./executive";
+export * from "./finance";
+export * from "./ai-sales-manager";
+
+==================================================
+FILE: platform/integrations/twilio/service.ts
+==================================================
+import twilio from "twilio";
+
+function getTwilioConfig() {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_WHATSAPP_FROM;
+
+  if (!accountSid || !authToken || !from) {
+    throw new Error("TWILIO_NOT_CONFIGURED");
+  }
+
+  return {
+    accountSid,
+    authToken,
+    from,
+  };
+}
+
+export async function sendWhatsAppMessage({
+  to,
+  body,
+}: {
+  to: string;
+  body: string;
+}) {
+  const config = getTwilioConfig();
+
+  const client = twilio(
+    config.accountSid,
+    config.authToken,
+  );
+
+  const normalizedTo = to.startsWith("whatsapp:")
+    ? to
+    : `whatsapp:${to}`;
+
+  const message = await client.messages.create({
+    from: config.from,
+    to: normalizedTo,
+    body,
+  });
+
+  return {
+    sid: message.sid,
+    status: message.status,
+    to: message.to,
+    from: message.from,
+    body: message.body,
+  };
+}
+
+
+==================================================
+FILE: app/api/whatsapp/send/route.ts
+==================================================
+import { NextResponse } from "next/server";
+import { authEngine } from "@/platform/auth/engine";
+import { Permissions } from "@/platform/auth/permissions";
+import { sendWhatsAppMessage } from "@/platform/integrations/twilio/service";
+
+export async function POST(request: Request) {
+  try {
+    const user = await authEngine.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "UNAUTHORIZED",
+        },
+        { status: 401 },
+      );
+    }
+
+    await authEngine.requirePermission(
+      Permissions.AI_EXECUTE,
+    );
+
+    const body = await request.json();
+
+    const to =
+      typeof body.to === "string"
+        ? body.to.trim()
+        : "";
+
+    const message =
+      typeof body.message === "string"
+        ? body.message.trim()
+        : "";
+
+    if (!to || !message) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "TO_AND_MESSAGE_REQUIRED",
+        },
+        { status: 400 },
+      );
+    }
+
+    const result = await sendWhatsAppMessage({
+      to,
+      body: message,
+    });
+
+    return NextResponse.json({
+      success: true,
+      result,
+    });
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "UNKNOWN_ERROR";
+
+    const status =
+      errorMessage === "UNAUTHORIZED"
+        ? 401
+        : errorMessage === "TWILIO_NOT_CONFIGURED"
+          ? 503
+          : 500;
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: errorMessage,
+      },
+      { status },
+    );
+  }
+}
+
+
+===== SUPABASE HELPERS =====
+lib\supabase-admin.ts
+lib\supabase-browser.ts
+lib\supabase-server.ts
+lib\supabase.ts
+platform\diagnostics\approval\supabase-repository.ts
+platform\payment-provider\mercadopago\client.ts
+platform\telemetry\repository\supabase.ts

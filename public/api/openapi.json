@@ -1,0 +1,21 @@
+﻿{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CRM AI CORE Public Agent API",
+    "version": "1.0.0",
+    "description": "Public discovery interface for CRM AI CORE. Private CRM operations require authentication and authorization."
+  },
+  "paths": {
+    "/api/public/agent": {
+      "get": {
+        "summary": "Discover CRM AI CORE",
+        "description": "Returns public product capabilities and canonical resources available to agents.",
+        "responses": {
+          "200": {
+            "description": "Public agent discovery information"
+          }
+        }
+      }
+    }
+  }
+}

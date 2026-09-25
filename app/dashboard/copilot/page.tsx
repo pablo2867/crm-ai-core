@@ -9,9 +9,6 @@ import AIFollowUpGenerator from "@/components/copilot/AIFollowUpGenerator";
 import AIEmailGenerator from "@/components/copilot/AIEmailGenerator";
 import AIWhatsAppGenerator from "@/components/copilot/AIWhatsAppGenerator";
 import AIDealCoach from "@/components/copilot/AIDealCoach";
-import {
-  AICommandCenter,
-} from "@/components/copilot/command-center";
 import CopilotMessages from "@/components/copilot/CopilotMessages";
 import CopilotQuickActions from "@/components/copilot/CopilotQuickActions";
 import CopilotInput from "@/components/copilot/CopilotInput";
@@ -25,120 +22,42 @@ import {
 } from "@/hooks/useCopilotChat";
 
 export default function CopilotPage() {
-
   const {
-
     forecastRevenue,
-
     hotLeads,
-
     conversionRate,
-
     businessSummary,
-
     radarData,
-
   } = useCopilotDashboard();
 
   const {
-
     question,
-
     setQuestion,
-
     loading,
-
     messages,
-
     askCopilot,
-
   } = useCopilotChat();
 
   return (
-
-    <main
-
-      className="
-        min-h-screen
-        bg-[#09090B]
-        text-white
-        p-6
-        md:p-10
-      "
-
-    >
-
+    <main className="min-h-screen bg-[#09090B] text-white p-6 md:p-10">
       <CopilotHeader />
 
       <CopilotInsights
-
-        forecastRevenue={
-
-          forecastRevenue
-
-        }
-
-        hotLeads={
-
-          hotLeads
-
-        }
-
-        conversionRate={
-
-          conversionRate
-
-        }
-
+        forecastRevenue={forecastRevenue}
+        hotLeads={hotLeads}
+        conversionRate={conversionRate}
       />
 
       <AIBusinessSummary
-
-        summary={
-
-          businessSummary
-
-        }
-
-        forecastRevenue={
-
-          forecastRevenue
-
-        }
-
-        hotLeads={
-
-          hotLeads
-
-        }
-
-        conversionRate={
-
-          conversionRate
-
-        }
-
+        summary={businessSummary}
+        forecastRevenue={forecastRevenue}
+        hotLeads={hotLeads}
+        conversionRate={conversionRate}
       />
 
-      <AIOpportunityRadar
+      <AIOpportunityRadar data={radarData} />
 
-        data={
-
-          radarData
-
-        }
-
-      />
-
-      <AIActionCenter
-
-        data={
-
-          radarData
-
-        }
-
-      />
+      <AIActionCenter data={radarData} />
 
       <AIFollowUpGenerator />
 
@@ -146,85 +65,22 @@ export default function CopilotPage() {
 
       <AIWhatsAppGenerator />
 
-      <AIDealCoach
+      <AIDealCoach data={radarData} />
 
-        data={
-
-          radarData
-
-        }
-
-      />
-
-      <div
-
-        className="
-          bg-[#111113]
-          border
-          border-zinc-800
-          rounded-3xl
-          p-6
-          h-[70vh]
-          flex
-          flex-col
-        "
-
-      >
-
-        <AICommandCenter />
-
-        <CopilotMessages
-
-          messages={
-
-            messages
-
-          }
-
-        />
+      <div className="bg-[#111113] border border-zinc-800 rounded-3xl p-6 h-[70vh] flex flex-col">
+        <CopilotMessages messages={messages} />
 
         <CopilotQuickActions
-
-          askCopilot={
-
-            askCopilot
-
-          }
-
+          askCopilot={askCopilot}
         />
 
         <CopilotInput
-
-          question={
-
-            question
-
-          }
-
-          setQuestion={
-
-            setQuestion
-
-          }
-
-          loading={
-
-            loading
-
-          }
-
-          askCopilot={() =>
-
-            askCopilot()
-
-          }
-
+          question={question}
+          setQuestion={setQuestion}
+          loading={loading}
+          askCopilot={() => askCopilot()}
         />
-
       </div>
-
     </main>
-
   );
-
 }

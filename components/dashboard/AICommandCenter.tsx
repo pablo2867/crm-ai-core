@@ -63,7 +63,7 @@ export default function AICommandCenter({
 
       </div>
 
-      <div className="mt-8 grid grid-cols-3 gap-6">
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
 
         <div>
 
@@ -157,4 +157,5 @@ export default function AICommandCenter({
   );
 
 }
+
 

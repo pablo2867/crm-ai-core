@@ -5,6 +5,7 @@
 import {
   salesFollowupCapability,
   commandCenterCapability,
+  commercialProposalCapability,
 } from "@/platform/capabilities";
 
 import {
@@ -57,6 +58,8 @@ export const crmModule =
       salesFollowupCapability,
 
       commandCenterCapability,
+
+      commercialProposalCapability,
 
     ],
 

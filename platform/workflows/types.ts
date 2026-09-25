@@ -38,6 +38,8 @@ export interface WorkflowMetadata {
 
   enabled: boolean;
 
+  advanced?: boolean;
+
   priority: number;
 
   category: string;
@@ -113,3 +115,4 @@ export interface WorkflowResult {
   totalDurationMs: number;
 
 }
+

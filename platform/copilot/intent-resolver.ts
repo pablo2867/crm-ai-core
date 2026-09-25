@@ -3,11 +3,8 @@
 } from "@/platform/manifest";
 
 export interface CopilotIntent {
-
   intent: string;
-
   confidence: number;
-
 }
 
 class CopilotIntentResolver {
@@ -27,7 +24,6 @@ class CopilotIntentResolver {
     */
 
     if (
-
       (
         text.includes("qué leads") ||
         text.includes("que leads") ||
@@ -38,9 +34,7 @@ class CopilotIntentResolver {
         text.includes("cuál lead") ||
         text.includes("cual lead")
       )
-
       &&
-
       (
         text.includes("probabilidad") ||
         text.includes("probable") ||
@@ -49,24 +43,68 @@ class CopilotIntentResolver {
         text.includes("oportunidad") ||
         text.includes("mejor")
       )
-
     ) {
-
       return {
-
-        intent:
-          "sales.lead-ranking",
-
-        confidence:
-          0.99,
-
+        intent: "sales.lead-ranking",
+        confidence: 0.99,
       };
+    }
+
+    /*
+    ---------------------------------------
+    Financial Intelligence
+    ---------------------------------------
+    Las consultas financieras deben resolverse
+    antes de cualquier fallback genérico.
+    ---------------------------------------
+    */
+
+    const financialIntent =
+      intents.find(
+        (intent) =>
+          intent.id === "financial.analysis"
+      );
+
+    if (financialIntent) {
+
+      const financialMatched =
+        financialIntent.keywords.some(
+          (keyword) =>
+            text.includes(
+              keyword.toLowerCase()
+            )
+        );
+
+      if (financialMatched) {
+
+        return {
+          intent:
+            financialIntent.id,
+
+          confidence:
+            financialIntent.confidence,
+        };
+
+      }
 
     }
+
+    /*
+    ---------------------------------------
+    Manifest
+    ---------------------------------------
+    */
 
     for (
       const intent of intents
     ) {
+
+      if (
+        intent.id ===
+        "financial.analysis"
+      ) {
+        continue;
+      }
 
       const matched =
         intent.keywords.some(
@@ -79,13 +117,11 @@ class CopilotIntentResolver {
       if (matched) {
 
         return {
-
           intent:
             intent.id,
 
           confidence:
             intent.confidence,
-
         };
 
       }
@@ -93,7 +129,6 @@ class CopilotIntentResolver {
     }
 
     return null;
-
   }
 
   resolve(
@@ -127,7 +162,6 @@ class CopilotIntentResolver {
     */
 
     if (
-
       text.includes("prioridades") ||
       text.includes("prioridad") ||
       text.includes("hoy") ||
@@ -138,19 +172,14 @@ class CopilotIntentResolver {
       text.includes("resumen ejecutivo") ||
       text.includes("resumen del día") ||
       text.includes("resumen del dia")
-
     ) {
-
       return {
-
         intent:
           "sales.daily-priorities",
 
         confidence:
           0.98,
-
       };
-
     }
 
     /*
@@ -160,23 +189,17 @@ class CopilotIntentResolver {
     */
 
     if (
-
       text.includes("seguimiento") ||
       text.includes("follow") ||
       text.includes("lead")
-
     ) {
-
       return {
-
         intent:
           "sales.followup",
 
         confidence:
           0.95,
-
       };
-
     }
 
     /*
@@ -186,22 +209,16 @@ class CopilotIntentResolver {
     */
 
     if (
-
       text.includes("tarea") ||
       text.includes("task")
-
     ) {
-
       return {
-
         intent:
           "sales.task",
 
         confidence:
           0.95,
-
       };
-
     }
 
     /*
@@ -211,41 +228,29 @@ class CopilotIntentResolver {
     */
 
     if (
-
       text.includes("campaña") ||
       text.includes("campana") ||
       text.includes("campaign")
-
     ) {
-
       return {
-
         intent:
           "marketing.campaign",
 
         confidence:
           0.95,
-
       };
-
     }
 
     if (
-
       text.includes("email")
-
     ) {
-
       return {
-
         intent:
           "marketing.email",
 
         confidence:
           0.95,
-
       };
-
     }
 
     /*
@@ -255,9 +260,7 @@ class CopilotIntentResolver {
     */
 
     return null;
-
   }
-
 }
 
 const resolver =
@@ -270,7 +273,6 @@ export function resolveIntent(
   return resolver.resolve(
     message
   );
-
 }
 
 export const copilotIntentResolver =

@@ -1,0 +1,51 @@
+﻿# CRM AI CORE
+
+> CRM AI CORE es una plataforma SaaS de CRM con inteligencia artificial para gestión de leads, ventas, seguimiento y automatización comercial.
+
+## Producto
+CRM AI CORE permite gestionar leads, oportunidades, seguimiento comercial y automatizaciones mediante capacidades de inteligencia artificial.
+
+## Funcionalidades
+- Gestión de leads
+- Análisis de leads
+- Seguimiento comercial
+- Generación de contenido asistido por IA
+- Automatización de workflows
+- Pipeline comercial
+- Analytics
+- Copilot
+- Gestión de tareas
+- Conversaciones
+- Skills y capacidades de IA
+
+## Información pública
+- Sitio principal: /
+- Funcionalidades: /features
+- Soluciones: /solutions
+- Demo: /demo
+- Precios: /pricing
+- Recursos: /resources
+- Preguntas frecuentes: /faq
+- Documentación: /documentation
+- Contacto: /contact
+- Política de IA: /ai-policy
+- Registro: /signup
+- Inicio de sesión: /login
+
+## Agentes de IA
+La información pública de CRM AI CORE está estructurada para facilitar su descubrimiento, interpretación y navegación por sistemas automatizados y agentes de IA.
+
+## API
+CRM AI CORE dispone de interfaces API para funcionalidades internas de la plataforma. El acceso a operaciones privadas requiere autenticación y autorización.
+
+## Seguridad
+Las áreas privadas y operaciones protegidas no forman parte del contenido público destinado a agentes.
+
+## Política de IA
+/ai-policy
+
+## Sitemap
+/sitemap.xml
+
+## Robots
+/robots.txt

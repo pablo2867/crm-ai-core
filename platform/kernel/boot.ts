@@ -16,10 +16,18 @@ import {
   crmModule,
 } from "@/modules/crm";
 
+import {
+  financialModule,
+} from "@/modules/financial";
+
 export function bootKernel(): void {
 
   moduleEngine.initialize([
+
     crmModule,
+
+    financialModule,
+
   ]);
 
   console.log(

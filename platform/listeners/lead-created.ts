@@ -1,4 +1,4 @@
-import {
+﻿import {
   eventBus,
   Events,
 } from "@/platform/events";
@@ -19,7 +19,6 @@ eventBus.on(
 
     await automationEngine.execute(
       event
-    );
-
-  }
+    );}
 );
+

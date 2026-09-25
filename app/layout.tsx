@@ -1,25 +1,38 @@
-import type { Metadata }
-from "next";
-
-import "./globals.css";
-
-import Sidebar
-from "@/components/Sidebar";
-
-import {
-  Toaster,
-} from "sonner";
-
-import AINotifications
-from "@/components/AINotifications";
+﻿import "./globals.css";
+import type { Metadata } from "next";
+import { OrganizationJsonLd } from "@/components/seo/OrganizationJsonLd";
 
 export const metadata: Metadata = {
-
-  title: "CRM AI Core",
-
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  ),
+  title: {
+    default: "CRM AI CORE | CRM Inteligente con IA",
+    template: "%s | CRM AI CORE",
+  },
   description:
-    "CRM Inteligente con IA",
-
+    "CRM inteligente con inteligencia artificial para ventas, seguimiento, automatización y análisis comercial.",
+  applicationName: "CRM AI CORE",
+  keywords: [
+    "CRM con IA",
+    "CRM inteligente",
+    "inteligencia artificial para ventas",
+    "automatización comercial",
+    "gestión de leads",
+    "CRM México",
+  ],
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    type: "website",
+    siteName: "CRM AI CORE",
+    title: "CRM AI CORE | CRM Inteligente con IA",
+    description:
+      "CRM inteligente con IA para ventas, seguimiento y automatización comercial.",
+    locale: "es_MX",
+  },
 };
 
 export default function RootLayout({
@@ -27,52 +40,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
   return (
-
     <html lang="es">
-
-      <body
-        className="
-          bg-[#09090B]
-          text-white
-          overflow-x-hidden
-        "
-      >
-
-        <div className="lg:flex">
-
-          <Sidebar />
-
-          <main
-            className="
-              flex-1
-
-              lg:ml-[280px]
-
-              min-h-screen
-
-              overflow-x-hidden
-            "
-          >
-
-            {children}
-
-          </main>
-
-        </div>
-
-        <AINotifications />
-
-        <Toaster
-          richColors
-          position="top-right"
-        />
-
-      </body>
-
+      <body>
+        <OrganizationJsonLd />{children}</body>
     </html>
-
   );
-
 }
+
+

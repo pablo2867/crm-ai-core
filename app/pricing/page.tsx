@@ -1,4 +1,5 @@
-﻿import Link from "next/link";
+﻿import LegalLinks from "@/components/legal/LegalLinks";
+import Link from "next/link";
 import BillingCheckout from "@/components/billing/BillingCheckout";
 import { createClient } from "@/lib/supabase-server";
 
@@ -199,9 +200,13 @@ export default async function PricingPage() {
           </Link>
         </div>
       </footer>
-    </main>
+    
+      <LegalLinks />
+</main>
   );
 }
+
+
 
 
 

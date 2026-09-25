@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/lib/supabase-admin";
+﻿import { supabaseAdmin } from "@/lib/supabase-admin";
 
 import type {
   CreateMembershipRequest,
@@ -110,6 +110,29 @@ export class MembershipRepository {
 
   }
 
+
+  async countByOrganization(
+    organizationId: string
+  ): Promise<number> {
+
+    const { count, error } =
+      await supabaseAdmin
+        .from("organization_members")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("organization_id", organizationId)
+        .eq("active", true);
+
+    if (error) {
+      throw new Error(
+        error.message
+      );
+    }
+
+    return count ?? 0;
+  }
 }
 
 export const membershipRepository =

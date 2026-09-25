@@ -38,6 +38,30 @@ import {
   commandCenterWorkflow,
 } from "./definitions/command-center";
 
+import {
+  financialAnalysisWorkflow,
+} from "./definitions/financial-analysis";
+
+import {
+  whatsappGeneralWorkflow,
+} from "./definitions/whatsapp/general";
+
+import {
+  whatsappInterestWorkflow,
+} from "./definitions/whatsapp/interest";
+
+import {
+  whatsappObjectionWorkflow,
+} from "./definitions/whatsapp/objection";
+
+import {
+  whatsappClosingWorkflow,
+} from "./definitions/whatsapp/closing";
+
+import {
+  whatsappProposalWorkflow,
+} from "./definitions/whatsapp/proposal";
+
 export class WorkflowRegistry {
 
   private workflows = new Map<
@@ -83,6 +107,30 @@ export class WorkflowRegistry {
       commandCenterWorkflow
     );
 
+    this.register(
+      financialAnalysisWorkflow
+    );
+
+    this.register(
+      whatsappGeneralWorkflow
+    );
+
+    this.register(
+      whatsappInterestWorkflow
+    );
+
+    this.register(
+      whatsappObjectionWorkflow
+    );
+
+    this.register(
+      whatsappClosingWorkflow
+    );
+
+    this.register(
+      whatsappProposalWorkflow
+    );
+
   }
 
   register(
@@ -124,3 +172,5 @@ export class WorkflowRegistry {
 
 export const workflowRegistry =
   new WorkflowRegistry();
+
+

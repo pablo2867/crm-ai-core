@@ -1,0 +1,2274 @@
+﻿
+===== C:\Users\HP\Desktop\crm-ai-core-clean\platform\financial\intake\confirmation.ts =====
+import {
+  FinancialExtractedData,
+  FinancialInconsistency,
+  FinancialIntakeState,
+} from "./types";
+
+export type FinancialConfirmationStatus =
+  | "not_required"
+  | "pending"
+  | "confirmed"
+  | "rejected";
+
+export interface FinancialConfirmationItem {
+  field: string;
+  value: unknown;
+  previousValue?: unknown;
+  reason: string;
+  severity: FinancialInconsistency["severity"];
+  status: FinancialConfirmationStatus;
+}
+
+export interface FinancialConfirmationResult {
+  status: FinancialConfirmationStatus;
+  confirmedData: FinancialExtractedData[];
+  rejectedFields: string[];
+  pendingItems: FinancialConfirmationItem[];
+}
+
+export class FinancialHumanConfirmation {
+  getPendingItems(
+    state: FinancialIntakeState
+  ): FinancialConfirmationItem[] {
+    const items: FinancialConfirmationItem[] = [];
+
+    for (const inconsistency of state.inconsistencies) {
+      if (!inconsistency.requiresConfirmation) {
+        continue;
+      }
+
+      for (const field of inconsistency.fields) {
+        const values = state.extractedData.filter(
+          (data) => data.field === field
+        );
+
+        const latest = values[values.length - 1];
+        const previous =
+          values.length > 1
+            ? values[values.length - 2]
+            : undefined;
+
+        items.push({
+          field,
+          value: latest?.value,
+          previousValue: previous?.value,
+          reason: inconsistency.description,
+          severity: inconsistency.severity,
+          status: "pending",
+        });
+      }
+    }
+
+    return items;
+  }
+
+  requiresConfirmation(
+    state: FinancialIntakeState
+  ): boolean {
+    return state.inconsistencies.some(
+      (item) => item.requiresConfirmation
+    );
+  }
+
+  buildConfirmationQuestion(
+    item: FinancialConfirmationItem
+  ): string {
+    if (item.previousValue !== undefined) {
+      return (
+        `DetectÃ© una diferencia en "${item.field}". ` +
+        `El valor anterior era ${this.formatValue(
+          item.previousValue
+        )} y el nuevo valor es ${this.formatValue(
+          item.value
+        )}. ` +
+        `Â¿CuÃ¡l de los dos valores debemos utilizar?`
+      );
+    }
+
+    return (
+      `Necesito confirmar el dato "${item.field}" ` +
+      `con valor ${this.formatValue(item.value)}. ` +
+      `Â¿Confirmas que este dato es correcto?`
+    );
+  }
+
+  confirm(
+    state: FinancialIntakeState,
+    field: string,
+    use: "latest" | "previous" = "latest"
+  ): FinancialConfirmationResult {
+    const item = this.getPendingItems(state).find(
+      (pending) => pending.field === field
+    );
+
+    if (!item) {
+      return {
+        status: "not_required",
+        confirmedData: [],
+        rejectedFields: [],
+        pendingItems: [],
+      };
+    }
+
+    const values = state.extractedData.filter(
+      (data) => data.field === field
+    );
+
+    const selected =
+      use === "previous"
+        ? values[values.length - 2]
+        : values[values.length - 1];
+
+    if (!selected) {
+      return {
+        status: "not_required",
+        confirmedData: [],
+        rejectedFields: [],
+        pendingItems: this.getPendingItems(state),
+      };
+    }
+
+    const confirmedData: FinancialExtractedData[] = [
+      {
+        ...selected,
+        confirmed: true,
+      },
+    ];
+
+    const remaining = this.getPendingItems(state).filter(
+      (pending) => pending.field !== field
+    );
+
+    return {
+      status:
+        remaining.length > 0
+          ? "pending"
+          : "confirmed",
+      confirmedData,
+      rejectedFields: [],
+      pendingItems: remaining,
+    };
+  }
+
+  reject(
+    state: FinancialIntakeState,
+    field: string
+  ): FinancialConfirmationResult {
+    const item = this.getPendingItems(state).find(
+      (pending) => pending.field === field
+    );
+
+    if (!item) {
+      return {
+        status: "not_required",
+        confirmedData: [],
+        rejectedFields: [],
+        pendingItems: [],
+      };
+    }
+
+    const pendingItems = this.getPendingItems(state).filter(
+      (pending) => pending.field !== field
+    );
+
+    return {
+      status:
+        pendingItems.length > 0
+          ? "pending"
+          : "rejected",
+      confirmedData: [],
+      rejectedFields: [field],
+      pendingItems,
+    };
+  }
+
+  applyConfirmation(
+    state: FinancialIntakeState,
+    field: string,
+    confirmed: boolean,
+    use: "latest" | "previous" = "latest"
+  ): FinancialIntakeState {
+    const values = state.extractedData.filter(
+      (data) => data.field === field
+    );
+
+    const selectedIndex =
+      use === "previous"
+        ? values.length - 2
+        : values.length - 1;
+
+    const selected = values[selectedIndex];
+
+    if (!selected) {
+      return state;
+    }
+
+    const selectedValue = selected.value;
+
+    const updatedAnswers = state.answers
+      .filter((answer) => answer.field !== field)
+      .concat(
+        state.answers
+          .filter((answer) => answer.field === field)
+          .slice(
+            use === "previous" ? -2 : -1,
+            use === "previous" ? -1 : undefined
+          )
+          .map((answer) => ({
+            ...answer,
+            confirmed,
+          }))
+      );
+
+    const updatedExtractedData =
+      state.extractedData
+        .filter((data) => data.field !== field)
+        .concat({
+          ...selected,
+          confirmed,
+        });
+
+    const updatedInconsistencies =
+      confirmed
+        ? state.inconsistencies.filter(
+            (item) =>
+              !item.fields.includes(field)
+          )
+        : state.inconsistencies;
+
+    const hasPendingConfirmation =
+      updatedInconsistencies.some(
+        (item) => item.requiresConfirmation
+      );
+
+    const hasRejectedField =
+      !confirmed &&
+      state.inconsistencies.some(
+        (item) => item.fields.includes(field)
+      );
+
+    return {
+      ...state,
+      answers: updatedAnswers,
+      extractedData: updatedExtractedData,
+      inconsistencies: updatedInconsistencies,
+      status: hasPendingConfirmation
+        ? "needs_confirmation"
+        : hasRejectedField
+          ? "blocked"
+          : state.status,
+      canContinueToAnalysis:
+        confirmed &&
+        !hasPendingConfirmation &&
+        state.missingFields.length === 0,
+    };
+  }
+
+  private formatValue(value: unknown): string {
+    if (value === undefined || value === null) {
+      return "sin valor";
+    }
+
+    if (typeof value === "number") {
+      return value.toLocaleString("es-MX");
+    }
+
+    if (typeof value === "boolean") {
+      return value ? "SÃ­" : "No";
+    }
+
+    return String(value);
+  }
+}
+
+export const financialHumanConfirmation =
+  new FinancialHumanConfirmation();
+
+===== C:\Users\HP\Desktop\crm-ai-core-clean\platform\financial\intake\data-mapping.ts =====
+import {
+  FinancialExtractedData,
+  FinancialIntakeState,
+} from "./types";
+
+import type {
+  FinancialAccount,
+  FinancialPeriod,
+  FinancialTransaction,
+} from "../types";
+
+export interface FinancialMappedField {
+  field: string;
+  value: unknown;
+  source: FinancialExtractedData["source"];
+  confidence: number;
+  confirmed: boolean;
+}
+
+export interface FinancialDataMappingResult {
+  mappedData: FinancialMappedField[];
+  confirmedData: FinancialMappedField[];
+  pendingConfirmation: FinancialMappedField[];
+  unmappedFields: string[];
+}
+
+export interface FinancialTransactionMappingInput {
+  context: {
+    organizationId: string;
+    workspaceId: string;
+  };
+  period: FinancialPeriod;
+  accounts: FinancialAccount[];
+  state: FinancialIntakeState;
+}
+
+export interface FinancialTransactionMappingResult {
+  transactions: FinancialTransaction[];
+  unmappedFields: string[];
+  pendingConfirmation: FinancialMappedField[];
+}
+
+const FIELD_ACCOUNT_CONFIG: Record<
+  string,
+  {
+    code: string;
+    name: string;
+    type: FinancialAccount["type"];
+  }
+> = {
+  revenue: {
+    code: "4000",
+    name: "Ventas",
+    type: "revenue",
+  },
+
+  operating_expenses: {
+    code: "5000",
+    name: "Gastos Operativos",
+    type: "expense",
+  },
+
+  cash: {
+    code: "1000",
+    name: "Efectivo y Equivalentes",
+    type: "asset",
+  },
+
+  accounts_receivable: {
+    code: "1100",
+    name: "Cuentas por Cobrar",
+    type: "asset",
+  },
+
+  inventory: {
+    code: "1200",
+    name: "Inventarios",
+    type: "asset",
+  },
+
+  fixed_assets: {
+    code: "1500",
+    name: "Activos Fijos",
+    type: "asset",
+  },
+
+  accounts_payable: {
+    code: "2000",
+    name: "Cuentas por Pagar",
+    type: "liability",
+  },
+
+  debt: {
+    code: "2100",
+    name: "Deuda Financiera",
+    type: "liability",
+  },
+
+  equity: {
+    code: "3000",
+    name: "Capital / Patrimonio",
+    type: "equity",
+  },
+};
+
+export class FinancialDataMapper {
+  map(
+    state: FinancialIntakeState
+  ): FinancialDataMappingResult {
+    const mappedData: FinancialMappedField[] = [];
+    const unmappedFields: string[] = [];
+
+    for (const data of state.extractedData) {
+      if (!this.isSupportedField(data.field)) {
+        unmappedFields.push(data.field);
+        continue;
+      }
+
+      mappedData.push({
+        field: data.field,
+        value: data.value,
+        source: data.source,
+        confidence: data.confidence,
+        confirmed: data.confirmed,
+      });
+    }
+
+    return {
+      mappedData,
+      confirmedData: mappedData.filter(
+        (item) => item.confirmed
+      ),
+      pendingConfirmation: mappedData.filter(
+        (item) => !item.confirmed
+      ),
+      unmappedFields: [
+        ...new Set(unmappedFields),
+      ],
+    };
+  }
+
+  mapConfirmedData(
+    data: FinancialExtractedData[]
+  ): FinancialMappedField[] {
+    return data
+      .filter(
+        (item) =>
+          item.confirmed &&
+          this.isSupportedField(item.field)
+      )
+      .map((item) => ({
+        field: item.field,
+        value: item.value,
+        source: item.source,
+        confidence: item.confidence,
+        confirmed: true,
+      }));
+  }
+
+  mapToTransactions(
+    input: FinancialTransactionMappingInput
+  ): FinancialTransactionMappingResult {
+    const mapped = this.map(input.state);
+
+    const transactions: FinancialTransaction[] = [];
+
+    for (const item of mapped.confirmedData) {
+      const accountConfig =
+        FIELD_ACCOUNT_CONFIG[item.field];
+
+      if (!accountConfig) {
+        continue;
+      }
+
+      const account = this.findAccount(
+        input.accounts,
+        accountConfig.code
+      );
+
+      if (!account?.id) {
+        continue;
+      }
+
+      const amount = this.toNumber(item.value);
+
+      if (amount === undefined) {
+        continue;
+      }
+
+      transactions.push({
+        organizationId:
+          input.context.organizationId,
+
+        workspaceId:
+          input.context.workspaceId,
+
+        accountId: account.id,
+
+        periodId: input.period.id,
+
+        date: input.period.endDate,
+
+        description:
+          this.buildTransactionDescription(
+            item.field
+          ),
+
+        amount,
+
+        currency: account.currency,
+
+        type: account.type,
+
+        source: "manual",
+
+        sourceType: "internal",
+
+        classification: "actual",
+      });
+    }
+
+    return {
+      transactions,
+      unmappedFields: mapped.unmappedFields,
+      pendingConfirmation:
+        mapped.pendingConfirmation,
+    };
+  }
+
+  getAccountConfiguration(
+    field: string
+  ):
+    | {
+        code: string;
+        name: string;
+        type: FinancialAccount["type"];
+      }
+    | undefined {
+    return FIELD_ACCOUNT_CONFIG[field];
+  }
+
+  getValue(
+    state: FinancialIntakeState,
+    field: string
+  ): unknown {
+    const item = [...state.extractedData]
+      .reverse()
+      .find(
+        (data) =>
+          data.field === field &&
+          data.confirmed
+      );
+
+    return item?.value;
+  }
+
+  hasConfirmedField(
+    state: FinancialIntakeState,
+    field: string
+  ): boolean {
+    return state.extractedData.some(
+      (data) =>
+        data.field === field &&
+        data.confirmed
+    );
+  }
+
+  private findAccount(
+    accounts: FinancialAccount[],
+    code: string
+  ): FinancialAccount | undefined {
+    return accounts.find(
+      (account) =>
+        account.code === code &&
+        account.active
+    );
+  }
+
+  private buildTransactionDescription(
+    field: string
+  ): string {
+    const descriptions: Record<string, string> = {
+      revenue:
+        "Ingresos reportados durante el perÃ­odo",
+
+      operating_expenses:
+        "Gastos operativos reportados durante el perÃ­odo",
+
+      cash:
+        "Saldo de efectivo reportado al cierre del perÃ­odo",
+
+      accounts_receivable:
+        "Saldo de cuentas por cobrar reportado al cierre",
+
+      accounts_payable:
+        "Saldo de cuentas por pagar reportado al cierre",
+
+      debt:
+        "Saldo de deuda financiera reportado al cierre",
+
+      inventory:
+        "Valor de inventario reportado al cierre",
+
+      fixed_assets:
+        "Valor de activos fijos reportado al cierre",
+
+      equity:
+        "Saldo de capital o patrimonio reportado al cierre",
+    };
+
+    return (
+      descriptions[field] ??
+      `Dato financiero reportado: ${field}`
+    );
+  }
+
+  private toNumber(
+    value: unknown
+  ): number | undefined {
+    if (typeof value === "number") {
+      return Number.isFinite(value)
+        ? value
+        : undefined;
+    }
+
+    if (typeof value !== "string") {
+      return undefined;
+    }
+
+    const normalized = value
+      .replace(/\$/g, "")
+      .replace(/MXN/gi, "")
+      .replace(/USD/gi, "")
+      .replace(/,/g, "")
+      .trim();
+
+    const number = Number(normalized);
+
+    return Number.isFinite(number)
+      ? number
+      : undefined;
+  }
+
+  private isSupportedField(
+    field: string
+  ): boolean {
+    return Boolean(
+      FIELD_ACCOUNT_CONFIG[field]
+    );
+  }
+}
+
+export const financialDataMapper =
+  new FinancialDataMapper();
+
+===== C:\Users\HP\Desktop\crm-ai-core-clean\platform\financial\intake\engine.ts =====
+import {
+  FinancialInformationStatus,
+  FinancialIntakeQuestion,
+  FinancialIntakeRequest,
+  FinancialIntakeResponse,
+  FinancialIntakeState,
+} from "./types";
+
+const QUESTION_PRIORITY_ORDER: Record<string, number> = {
+  critical: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+
+export class FinancialIntakeEngine {
+  initialize(
+    mode: FinancialIntakeState["mode"]
+  ): FinancialIntakeState {
+    const questions = this.buildInitialQuestions(mode);
+
+    return {
+      status: "in_progress",
+      informationStatus: "insufficient",
+      mode,
+      currentQuestion: this.selectNextQuestion(
+        questions,
+        [],
+        []
+      ),
+      questions,
+      answers: [],
+      extractedData: [],
+      missingFields: questions
+        .filter((question) => question.required)
+        .map((question) => question.field),
+      inconsistencies: [],
+      completionPercentage: 0,
+      canContinueToAnalysis: false,
+    };
+  }
+
+  evaluate(
+    request: FinancialIntakeRequest
+  ): FinancialIntakeResponse {
+    const state =
+      request.state ??
+      this.initialize(request.mode);
+
+    const missingFields =
+      this.calculateMissingFields(state);
+
+    const completionPercentage =
+      this.calculateCompletionPercentage(state);
+
+    const informationStatus =
+      this.determineInformationStatus(
+        state,
+        missingFields
+      );
+
+    const requiresConfirmation =
+      state.inconsistencies.some(
+        (item) => item.requiresConfirmation
+      );
+
+    const canContinueToAnalysis =
+      informationStatus === "sufficient" &&
+      !requiresConfirmation;
+
+    const status =
+      requiresConfirmation
+        ? "needs_confirmation"
+        : canContinueToAnalysis
+          ? "complete"
+          : "in_progress";
+
+    const nextQuestion =
+      canContinueToAnalysis
+        ? undefined
+        : this.selectNextQuestion(
+            state.questions,
+            state.answers,
+            state.inconsistencies
+          );
+
+    return {
+      status,
+      informationStatus,
+      nextQuestion,
+      extractedData: state.extractedData,
+      missingFields,
+      inconsistencies: state.inconsistencies,
+      requiresConfirmation,
+      canContinueToAnalysis,
+      completionPercentage,
+    };
+  }
+
+  getNextQuestion(
+    state: FinancialIntakeState
+  ): FinancialIntakeQuestion | undefined {
+    return this.selectNextQuestion(
+      state.questions,
+      state.answers,
+      state.inconsistencies
+    );
+  }
+
+  private buildInitialQuestions(
+    mode: FinancialIntakeState["mode"]
+  ): FinancialIntakeQuestion[] {
+    const ownerQuestions: FinancialIntakeQuestion[] = [
+      {
+        id: "financial_period",
+        field: "financial_period",
+        question:
+          "Â¿De quÃ© perÃ­odo quieres hacer el diagnÃ³stico financiero?",
+        type: "date",
+        priority: "critical",
+        required: true,
+        reason:
+          "Necesitamos determinar el perÃ­odo de anÃ¡lisis.",
+      },
+      {
+        id: "revenue",
+        field: "revenue",
+        question:
+          "Â¿CuÃ¡nto vendiÃ³ o ingresÃ³ tu negocio durante ese perÃ­odo?",
+        type: "currency",
+        priority: "critical",
+        required: true,
+        reason:
+          "Necesitamos los ingresos para calcular rentabilidad.",
+      },
+      {
+        id: "operating_expenses",
+        field: "operating_expenses",
+        question:
+          "Â¿CuÃ¡nto gastÃ³ aproximadamente tu negocio en gastos operativos?",
+        type: "currency",
+        priority: "critical",
+        required: true,
+        reason:
+          "Necesitamos los gastos para determinar la utilidad.",
+      },
+      {
+        id: "cash",
+        field: "cash",
+        question:
+          "Â¿CuÃ¡nto dinero tenÃ­a disponible el negocio al cierre del perÃ­odo?",
+        type: "currency",
+        priority: "high",
+        required: true,
+        reason:
+          "El efectivo es necesario para evaluar la posiciÃ³n financiera.",
+      },
+      {
+        id: "accounts_receivable",
+        field: "accounts_receivable",
+        question:
+          "Â¿CuÃ¡nto te deben tus clientes actualmente?",
+        type: "currency",
+        priority: "high",
+        required: true,
+        reason:
+          "Las cuentas por cobrar ayudan a determinar la liquidez.",
+      },
+      {
+        id: "accounts_payable",
+        field: "accounts_payable",
+        question:
+          "Â¿CuÃ¡nto le debe actualmente el negocio a proveedores u otros acreedores?",
+        type: "currency",
+        priority: "high",
+        required: true,
+        reason:
+          "Las cuentas por pagar son necesarias para evaluar obligaciones.",
+      },
+      {
+        id: "debt",
+        field: "debt",
+        question:
+          "Â¿Tiene el negocio prÃ©stamos o deudas pendientes? Si sÃ­, Â¿por cuÃ¡nto?",
+        type: "currency",
+        priority: "high",
+        required: true,
+        reason:
+          "La deuda es necesaria para evaluar solvencia.",
+      },
+      {
+        id: "inventory",
+        field: "inventory",
+        question:
+          "Â¿CuÃ¡l es aproximadamente el valor del inventario del negocio?",
+        type: "currency",
+        priority: "medium",
+        required: false,
+        reason:
+          "El inventario permite mejorar el cÃ¡lculo de activos.",
+      },
+      {
+        id: "fixed_assets",
+        field: "fixed_assets",
+        question:
+          "Â¿CuÃ¡l es aproximadamente el valor de equipos, maquinaria, vehÃ­culos u otros activos del negocio?",
+        type: "currency",
+        priority: "medium",
+        required: false,
+        reason:
+          "Los activos fijos ayudan a completar el balance general.",
+      },
+      {
+        id: "equity",
+        field: "equity",
+        question:
+          "Â¿CuÃ¡nto capital propio has aportado al negocio aproximadamente?",
+        type: "currency",
+        priority: "medium",
+        required: false,
+        reason:
+          "El capital ayuda a completar la estructura patrimonial.",
+      },
+    ];
+
+    const accountantQuestions: FinancialIntakeQuestion[] = [
+      {
+        id: "financial_period",
+        field: "financial_period",
+        question:
+          "Indique el perÃ­odo contable objeto del anÃ¡lisis.",
+        type: "date",
+        priority: "critical",
+        required: true,
+      },
+      {
+        id: "revenue",
+        field: "revenue",
+        question:
+          "Indique los ingresos reconocidos correspondientes al perÃ­odo.",
+        type: "currency",
+        priority: "critical",
+        required: true,
+      },
+      {
+        id: "operating_expenses",
+        field: "operating_expenses",
+        question:
+          "Indique los gastos operativos reconocidos durante el perÃ­odo.",
+        type: "currency",
+        priority: "critical",
+        required: true,
+      },
+      {
+        id: "cash",
+        field: "cash",
+        question:
+          "Indique el saldo de efectivo y equivalentes al cierre.",
+        type: "currency",
+        priority: "high",
+        required: true,
+      },
+      {
+        id: "accounts_receivable",
+        field: "accounts_receivable",
+        question:
+          "Indique el saldo de cuentas por cobrar al cierre.",
+        type: "currency",
+        priority: "high",
+        required: true,
+      },
+      {
+        id: "accounts_payable",
+        field: "accounts_payable",
+        question:
+          "Indique el saldo de cuentas por pagar al cierre.",
+        type: "currency",
+        priority: "high",
+        required: true,
+      },
+      {
+        id: "debt",
+        field: "debt",
+        question:
+          "Indique el saldo de deuda financiera pendiente al cierre.",
+        type: "currency",
+        priority: "high",
+        required: true,
+      },
+      {
+        id: "inventory",
+        field: "inventory",
+        question:
+          "Indique el valor contable del inventario al cierre.",
+        type: "currency",
+        priority: "medium",
+        required: false,
+      },
+      {
+        id: "fixed_assets",
+        field: "fixed_assets",
+        question:
+          "Indique el valor neto de propiedades, planta y equipo.",
+        type: "currency",
+        priority: "medium",
+        required: false,
+      },
+      {
+        id: "equity",
+        field: "equity",
+        question:
+          "Indique el patrimonio o capital contable al cierre.",
+        type: "currency",
+        priority: "medium",
+        required: false,
+      },
+    ];
+
+    return mode === "accountant"
+      ? accountantQuestions
+      : ownerQuestions;
+  }
+
+  private selectNextQuestion(
+    questions: FinancialIntakeQuestion[],
+    answers: FinancialIntakeState["answers"],
+    inconsistencies: FinancialIntakeState["inconsistencies"]
+  ): FinancialIntakeQuestion | undefined {
+    const answeredFields = new Set(
+      answers
+        .filter(
+          (answer) =>
+            answer.interpretedValue !== undefined
+        )
+        .map((answer) => answer.field)
+    );
+
+    const inconsistentFields = new Set(
+      inconsistencies.flatMap(
+        (item) => item.fields
+      )
+    );
+
+    return [...questions]
+      .filter(
+        (question) =>
+          !answeredFields.has(question.field) ||
+          inconsistentFields.has(question.field)
+      )
+      .sort(
+        (a, b) =>
+          QUESTION_PRIORITY_ORDER[a.priority] -
+          QUESTION_PRIORITY_ORDER[b.priority]
+      )[0];
+  }
+
+  private calculateMissingFields(
+    state: FinancialIntakeState
+  ): string[] {
+    const answeredFields = new Set(
+      state.answers
+        .filter(
+          (answer) =>
+            answer.interpretedValue !== undefined
+        )
+        .map((answer) => answer.field)
+    );
+
+    const inconsistentFields = new Set(
+      state.inconsistencies.flatMap(
+        (item) => item.fields
+      )
+    );
+
+    return state.questions
+      .filter(
+        (question) =>
+          question.required &&
+          (!answeredFields.has(question.field) ||
+            inconsistentFields.has(question.field))
+      )
+      .map((question) => question.field);
+  }
+
+  private calculateCompletionPercentage(
+    state: FinancialIntakeState
+  ): number {
+    const requiredQuestions =
+      state.questions.filter(
+        (question) => question.required
+      );
+
+    if (requiredQuestions.length === 0) {
+      return 100;
+    }
+
+    const answeredRequired =
+      requiredQuestions.filter((question) =>
+        state.answers.some(
+          (answer) =>
+            answer.field === question.field &&
+            answer.interpretedValue !== undefined &&
+            !state.inconsistencies.some(
+              (item) =>
+                item.fields.includes(
+                  question.field
+                ) &&
+                item.requiresConfirmation
+            )
+        )
+      );
+
+    return Math.round(
+      (answeredRequired.length /
+        requiredQuestions.length) *
+        100
+    );
+  }
+
+  private determineInformationStatus(
+    state: FinancialIntakeState,
+    missingFields: string[]
+  ): FinancialInformationStatus {
+    if (state.inconsistencies.length > 0) {
+      return "inconsistent";
+    }
+
+    if (missingFields.length > 0) {
+      return "insufficient";
+    }
+
+    return "sufficient";
+  }
+}
+
+export const financialIntakeEngine =
+  new FinancialIntakeEngine();
+
+===== C:\Users\HP\Desktop\crm-ai-core-clean\platform\financial\intake\index.ts =====
+export {
+  FinancialIntakeEngine,
+  financialIntakeEngine,
+} from "./engine";
+
+export {
+  FinancialIntakeService,
+  financialIntakeService,
+} from "./service";
+
+export {
+  FinancialQuestionEngine,
+  financialQuestionEngine,
+} from "./question-engine";
+
+export {
+  FinancialHumanConfirmation,
+  financialHumanConfirmation,
+} from "./confirmation";
+
+export {
+  FinancialDataMapper,
+  financialDataMapper,
+} from "./data-mapping";
+
+export {
+  FinancialAIInterviewer,
+  financialAIInterviewer,
+} from "./ai/interviewer";
+
+export {
+  financialAIProvider,
+  buildFinancialInterviewerPrompt,
+  buildFinancialInterviewerSystemPrompt,
+} from "./ai/provider";
+
+export {
+  FINANCIAL_INTAKE_MODES,
+  getModeConfig,
+  adaptQuestionToMode,
+} from "./modes";
+
+export * from "./types";
+
+===== C:\Users\HP\Desktop\crm-ai-core-clean\platform\financial\intake\modes.ts =====
+import {
+  FinancialIntakeMode,
+  FinancialIntakeQuestion,
+} from "./types";
+
+export interface FinancialIntakeModeConfig {
+  mode: FinancialIntakeMode;
+  label: string;
+  description: string;
+  tone: "simple" | "technical";
+  allowApproximateValues: boolean;
+  requireConfirmationForExtractedData: boolean;
+}
+
+export const FINANCIAL_INTAKE_MODES: Record<
+  FinancialIntakeMode,
+  FinancialIntakeModeConfig
+> = {
+  owner: {
+    mode: "owner",
+    label: "DueÃ±o del negocio",
+    description:
+      "Modo diseÃ±ado para propietarios o responsables del negocio que no necesariamente utilizan terminologÃ­a contable.",
+    tone: "simple",
+    allowApproximateValues: true,
+    requireConfirmationForExtractedData: true,
+  },
+
+  accountant: {
+    mode: "accountant",
+    label: "Contador",
+    description:
+      "Modo diseÃ±ado para usuarios con conocimientos contables y financieros.",
+    tone: "technical",
+    allowApproximateValues: false,
+    requireConfirmationForExtractedData: true,
+  },
+};
+
+export function getModeConfig(
+  mode: FinancialIntakeMode
+): FinancialIntakeModeConfig {
+  return FINANCIAL_INTAKE_MODES[mode];
+}
+
+export function adaptQuestionToMode(
+  question: FinancialIntakeQuestion,
+  mode: FinancialIntakeMode
+): FinancialIntakeQuestion {
+  const config = getModeConfig(mode);
+
+  if (config.tone === "technical") {
+    return {
+      ...question,
+      question: toTechnicalQuestion(question),
+    };
+  }
+
+  return {
+    ...question,
+    question: toOwnerQuestion(question),
+  };
+}
+
+function toOwnerQuestion(
+  question: FinancialIntakeQuestion
+): string {
+  const replacements: Record<string, string> = {
+    revenue:
+      "Â¿CuÃ¡nto dinero ingresÃ³ por las ventas de tu negocio durante ese perÃ­odo?",
+    operating_expenses:
+      "Â¿CuÃ¡nto gastÃ³ tu negocio para funcionar durante ese perÃ­odo?",
+    cash:
+      "Â¿CuÃ¡nto dinero tenÃ­a disponible el negocio al terminar ese perÃ­odo?",
+    accounts_receivable:
+      "Â¿CuÃ¡nto dinero te debÃ­an tus clientes al terminar ese perÃ­odo?",
+    accounts_payable:
+      "Â¿CuÃ¡nto dinero debÃ­a tu negocio a proveedores u otras personas?",
+    debt:
+      "Â¿CuÃ¡nto debÃ­a el negocio por prÃ©stamos u otras deudas?",
+    inventory:
+      "Â¿CuÃ¡nto valÃ­a aproximadamente la mercancÃ­a o inventario que tenÃ­as?",
+    fixed_assets:
+      "Â¿CuÃ¡nto valen aproximadamente los equipos, vehÃ­culos, maquinaria u otros bienes del negocio?",
+    equity:
+      "Â¿CuÃ¡nto dinero propio has invertido en el negocio?",
+  };
+
+  return replacements[question.field] ?? question.question;
+}
+
+function toTechnicalQuestion(
+  question: FinancialIntakeQuestion
+): string {
+  const replacements: Record<string, string> = {
+    revenue:
+      "Indique los ingresos reconocidos correspondientes al perÃ­odo.",
+    operating_expenses:
+      "Indique los gastos operativos reconocidos durante el perÃ­odo.",
+    cash:
+      "Indique el saldo de efectivo y equivalentes al cierre del perÃ­odo.",
+    accounts_receivable:
+      "Indique el saldo de cuentas por cobrar al cierre.",
+    accounts_payable:
+      "Indique el saldo de cuentas por pagar al cierre.",
+    debt:
+      "Indique el saldo de obligaciones financieras pendientes al cierre.",
+    inventory:
+      "Indique el valor contable del inventario al cierre.",
+    fixed_assets:
+      "Indique el valor neto de propiedades, planta y equipo.",
+    equity:
+      "Indique el saldo del patrimonio o capital contable al cierre.",
+  };
+
+  return replacements[question.field] ?? question.question;
+}
+
+===== C:\Users\HP\Desktop\crm-ai-core-clean\platform\financial\intake\question-engine.ts =====
+import {
+  FinancialIntakeQuestion,
+  FinancialIntakeState,
+} from "./types";
+
+const PRIORITY_WEIGHT: Record<
+  FinancialIntakeQuestion["priority"],
+  number
+> = {
+  critical: 100,
+  high: 75,
+  medium: 50,
+  low: 25,
+};
+
+export class FinancialQuestionEngine {
+  getNextQuestion(
+    state: FinancialIntakeState
+  ): FinancialIntakeQuestion | undefined {
+    const answeredFields = new Set(
+      state.answers
+        .filter((answer) => answer.confirmed !== false)
+        .map((answer) => answer.field)
+    );
+
+    const inconsistentFields = new Set(
+      state.inconsistencies.flatMap(
+        (item) => item.fields
+      )
+    );
+
+    const candidates = state.questions
+      .filter((question) => {
+        const answered = answeredFields.has(
+          question.field
+        );
+
+        const inconsistent =
+          inconsistentFields.has(question.field);
+
+        return !answered || inconsistent;
+      })
+      .map((question) => ({
+        question,
+        score: this.calculatePriority(
+          question,
+          inconsistentFields.has(question.field)
+        ),
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    return candidates[0]?.question;
+  }
+
+  getPendingQuestions(
+    state: FinancialIntakeState
+  ): FinancialIntakeQuestion[] {
+    const answeredFields = new Set(
+      state.answers
+        .filter((answer) => answer.confirmed !== false)
+        .map((answer) => answer.field)
+    );
+
+    const inconsistentFields = new Set(
+      state.inconsistencies.flatMap(
+        (item) => item.fields
+      )
+    );
+
+    return state.questions
+      .filter((question) => {
+        const answered = answeredFields.has(
+          question.field
+        );
+
+        const inconsistent =
+          inconsistentFields.has(question.field);
+
+        return !answered || inconsistent;
+      })
+      .sort(
+        (a, b) =>
+          this.calculatePriority(
+            b,
+            inconsistentFields.has(b.field)
+          ) -
+          this.calculatePriority(
+            a,
+            inconsistentFields.has(a.field)
+          )
+      );
+  }
+
+  shouldAskFollowUp(
+    question: FinancialIntakeQuestion,
+    state: FinancialIntakeState
+  ): boolean {
+    const relatedInconsistency =
+      state.inconsistencies.some((item) =>
+        item.fields.includes(question.field)
+      );
+
+    return relatedInconsistency;
+  }
+
+  private calculatePriority(
+    question: FinancialIntakeQuestion,
+    inconsistent: boolean
+  ): number {
+    let score = PRIORITY_WEIGHT[question.priority];
+
+    if (question.required) {
+      score += 20;
+    }
+
+    if (inconsistent) {
+      score += 50;
+    }
+
+    return score;
+  }
+}
+
+export const financialQuestionEngine =
+  new FinancialQuestionEngine();
+
+===== C:\Users\HP\Desktop\crm-ai-core-clean\platform\financial\intake\service.ts =====
+import {
+  FinancialIntakeRequest,
+  FinancialIntakeResponse,
+  FinancialIntakeState,
+} from "./types";
+
+import { financialIntakeEngine } from "./engine";
+
+import {
+  financialQuestionEngine,
+} from "./question-engine";
+
+import {
+  financialAIInterviewer,
+  FinancialInterviewResult,
+} from "./ai/interviewer";
+
+import {
+  financialHumanConfirmation,
+} from "./confirmation";
+
+import {
+  financialDataMapper,
+  FinancialDataMappingResult,
+} from "./data-mapping";
+
+export interface FinancialIntakeProcessResult
+  extends FinancialIntakeResponse {
+  state: FinancialIntakeState;
+  interview?: FinancialInterviewResult;
+  mapping?: FinancialDataMappingResult;
+}
+
+export class FinancialIntakeService {
+  initialize(
+    mode: FinancialIntakeState["mode"]
+  ): FinancialIntakeState {
+    return financialIntakeEngine.initialize(mode);
+  }
+
+  evaluate(
+    request: FinancialIntakeRequest
+  ): FinancialIntakeResponse {
+    return financialIntakeEngine.evaluate(request);
+  }
+
+  async process(
+    request: FinancialIntakeRequest
+  ): Promise<FinancialIntakeProcessResult> {
+    let state =
+      request.state ??
+      this.initialize(request.mode);
+
+    let interview:
+      | FinancialInterviewResult
+      | undefined;
+
+    if (
+      request.message &&
+      state.currentQuestion
+    ) {
+      interview =
+        financialAIInterviewer.interpretAnswer(
+          state.currentQuestion,
+          request.message
+        );
+
+      const inconsistencies =
+        financialAIInterviewer.validateAgainstState(
+          interview,
+          state
+        );
+
+      state = {
+        ...state,
+        answers: [
+          ...state.answers,
+          interview.answer,
+        ],
+        extractedData: [
+          ...state.extractedData,
+          ...interview.extractedData,
+        ],
+        inconsistencies: [
+          ...state.inconsistencies,
+          ...inconsistencies,
+          ...interview.inconsistencies,
+        ],
+      };
+    }
+
+    const evaluation =
+      financialIntakeEngine.evaluate({
+        ...request,
+        state,
+      });
+
+    state = {
+      ...state,
+      status: evaluation.status,
+      informationStatus:
+        evaluation.informationStatus,
+      currentQuestion:
+        evaluation.nextQuestion,
+      missingFields:
+        evaluation.missingFields,
+      inconsistencies:
+        evaluation.inconsistencies,
+      completionPercentage:
+        evaluation.completionPercentage,
+      canContinueToAnalysis:
+        evaluation.canContinueToAnalysis,
+    };
+
+    const confirmationRequired =
+      financialHumanConfirmation.requiresConfirmation(
+        state
+      );
+
+    if (confirmationRequired) {
+      state = {
+        ...state,
+        status: "needs_confirmation",
+        canContinueToAnalysis: false,
+      };
+    }
+
+    const mapping =
+      financialDataMapper.map(state);
+
+    return {
+      status: state.status,
+      informationStatus:
+        state.informationStatus,
+      nextQuestion:
+        state.currentQuestion,
+      extractedData:
+        state.extractedData,
+      missingFields:
+        state.missingFields,
+      inconsistencies:
+        state.inconsistencies,
+      requiresConfirmation:
+        confirmationRequired,
+      canContinueToAnalysis:
+        state.canContinueToAnalysis &&
+        !confirmationRequired,
+      completionPercentage:
+        state.completionPercentage,
+      state,
+      interview,
+      mapping,
+    };
+  }
+
+  getNextQuestion(
+    state: FinancialIntakeState
+  ) {
+    return financialQuestionEngine.getNextQuestion(
+      state
+    );
+  }
+
+  getPendingQuestions(
+    state: FinancialIntakeState
+  ) {
+    return financialQuestionEngine.getPendingQuestions(
+      state
+    );
+  }
+
+  requiresConfirmation(
+    state: FinancialIntakeState
+  ): boolean {
+    return financialHumanConfirmation.requiresConfirmation(
+      state
+    );
+  }
+
+  getPendingConfirmationItems(
+    state: FinancialIntakeState
+  ) {
+    return financialHumanConfirmation.getPendingItems(
+      state
+    );
+  }
+
+  confirmField(
+    state: FinancialIntakeState,
+    field: string,
+    use: "latest" | "previous" = "latest"
+  ): FinancialIntakeState {
+    return financialHumanConfirmation.applyConfirmation(
+      state,
+      field,
+      true,
+      use
+    );
+  }
+
+  rejectField(
+    state: FinancialIntakeState,
+    field: string,
+    use: "latest" | "previous" = "latest"
+  ): FinancialIntakeState {
+    return financialHumanConfirmation.applyConfirmation(
+      state,
+      field,
+      false,
+      use
+    );
+  }
+
+  mapData(
+    state: FinancialIntakeState
+  ): FinancialDataMappingResult {
+    return financialDataMapper.map(state);
+  }
+}
+
+export const financialIntakeService =
+  new FinancialIntakeService();
+
+===== C:\Users\HP\Desktop\crm-ai-core-clean\platform\financial\intake\types.ts =====
+export type FinancialIntakeMode =
+  | "owner"
+  | "accountant";
+
+export type FinancialIntakeStatus =
+  | "not_started"
+  | "in_progress"
+  | "needs_confirmation"
+  | "complete"
+  | "blocked";
+
+export type FinancialInformationStatus =
+  | "sufficient"
+  | "insufficient"
+  | "inconsistent"
+  | "unknown";
+
+export type FinancialQuestionPriority =
+  | "critical"
+  | "high"
+  | "medium"
+  | "low";
+
+export type FinancialQuestionType =
+  | "text"
+  | "number"
+  | "currency"
+  | "percentage"
+  | "date"
+  | "boolean"
+  | "choice"
+  | "multi_choice";
+
+export interface FinancialIntakeQuestion {
+  id: string;
+  field: string;
+  question: string;
+  type: FinancialQuestionType;
+  priority: FinancialQuestionPriority;
+  required: boolean;
+  options?: string[];
+  reason?: string;
+}
+
+export interface FinancialIntakeAnswer {
+  questionId: string;
+  field: string;
+  rawAnswer: string;
+  interpretedValue?: unknown;
+  confidence?: number;
+  confirmed?: boolean;
+}
+
+export interface FinancialExtractedData {
+  field: string;
+  value: unknown;
+  source: "user" | "document" | "system";
+  confidence: number;
+  confirmed: boolean;
+}
+
+export interface FinancialInconsistency {
+  id: string;
+  fields: string[];
+  description: string;
+  severity: "low" | "medium" | "high" | "critical";
+  requiresConfirmation: boolean;
+}
+
+export interface FinancialIntakeState {
+  status: FinancialIntakeStatus;
+  informationStatus: FinancialInformationStatus;
+  mode: FinancialIntakeMode;
+
+  currentQuestion?: FinancialIntakeQuestion;
+
+  questions: FinancialIntakeQuestion[];
+  answers: FinancialIntakeAnswer[];
+
+  extractedData: FinancialExtractedData[];
+
+  missingFields: string[];
+  inconsistencies: FinancialInconsistency[];
+
+  completionPercentage: number;
+  canContinueToAnalysis: boolean;
+}
+
+export interface FinancialIntakeRequest {
+  userId?: string;
+  mode: FinancialIntakeMode;
+  message?: string;
+  state?: FinancialIntakeState;
+}
+
+export interface FinancialIntakeResponse {
+  status: FinancialIntakeStatus;
+  informationStatus: FinancialInformationStatus;
+
+  nextQuestion?: FinancialIntakeQuestion;
+
+  extractedData: FinancialExtractedData[];
+
+  missingFields: string[];
+  inconsistencies: FinancialInconsistency[];
+
+  requiresConfirmation: boolean;
+  canContinueToAnalysis: boolean;
+
+  completionPercentage: number;
+}
+
+===== C:\Users\HP\Desktop\crm-ai-core-clean\platform\financial\intake\ai\index.ts =====
+export {
+  FinancialAIInterviewer,
+  financialAIInterviewer,
+} from "./interviewer";
+
+===== C:\Users\HP\Desktop\crm-ai-core-clean\platform\financial\intake\ai\interviewer.ts =====
+import {
+  FinancialExtractedData,
+  FinancialInconsistency,
+  FinancialIntakeAnswer,
+  FinancialIntakeQuestion,
+  FinancialIntakeState,
+} from "../types";
+
+export interface FinancialInterviewResult {
+  answer: FinancialIntakeAnswer;
+  extractedData: FinancialExtractedData[];
+  inconsistencies: FinancialInconsistency[];
+  clarificationRequired: boolean;
+  clarificationQuestion?: string;
+}
+
+export class FinancialAIInterviewer {
+  interpretAnswer(
+    question: FinancialIntakeQuestion,
+    rawAnswer: string
+  ): FinancialInterviewResult {
+    const normalizedAnswer = rawAnswer.trim();
+
+    if (!normalizedAnswer) {
+      return {
+        answer: {
+          questionId: question.id,
+          field: question.field,
+          rawAnswer,
+          confirmed: false,
+        },
+        extractedData: [],
+        inconsistencies: [],
+        clarificationRequired: true,
+        clarificationQuestion:
+          "Necesito una respuesta para poder continuar. Â¿Puedes proporcionar ese dato?",
+      };
+    }
+
+    const interpretedValue = this.parseValue(
+      question,
+      normalizedAnswer
+    );
+
+    if (interpretedValue === undefined) {
+      return {
+        answer: {
+          questionId: question.id,
+          field: question.field,
+          rawAnswer,
+          confirmed: false,
+        },
+        extractedData: [],
+        inconsistencies: [],
+        clarificationRequired: true,
+        clarificationQuestion:
+          this.buildClarificationQuestion(question),
+      };
+    }
+
+    const confidence =
+      this.calculateConfidence(
+        question,
+        normalizedAnswer,
+        interpretedValue
+      );
+
+    const extractedData: FinancialExtractedData[] = [
+      {
+        field: question.field,
+        value: interpretedValue,
+        source: "user",
+        confidence,
+        confirmed: false,
+      },
+    ];
+
+    return {
+      answer: {
+        questionId: question.id,
+        field: question.field,
+        rawAnswer,
+        interpretedValue,
+        confidence,
+        confirmed: false,
+      },
+      extractedData,
+      inconsistencies: [],
+      clarificationRequired: false,
+    };
+  }
+
+  validateAgainstState(
+    result: FinancialInterviewResult,
+    state: FinancialIntakeState
+  ): FinancialInconsistency[] {
+    const inconsistencies: FinancialInconsistency[] = [];
+
+    const value = result.answer.interpretedValue;
+
+    if (
+      typeof value === "number" &&
+      value < 0 &&
+      this.isNonNegativeField(
+        result.answer.field
+      )
+    ) {
+      inconsistencies.push({
+        id: `negative-${result.answer.field}`,
+        fields: [result.answer.field],
+        description:
+          `El valor indicado para ${result.answer.field} no puede interpretarse como un valor negativo en este contexto.`,
+        severity: "medium",
+        requiresConfirmation: true,
+      });
+    }
+
+    const previousValue =
+      state.extractedData.find(
+        (item) =>
+          item.field === result.answer.field
+      );
+
+    if (
+      previousValue &&
+      typeof previousValue.value === "number" &&
+      typeof value === "number" &&
+      previousValue.value !== value
+    ) {
+      inconsistencies.push({
+        id: `changed-${result.answer.field}`,
+        fields: [result.answer.field],
+        description:
+          `El valor proporcionado anteriormente para ${result.answer.field} es diferente al nuevo valor.`,
+        severity: "high",
+        requiresConfirmation: true,
+      });
+    }
+
+    return inconsistencies;
+  }
+
+  decideContinuation(
+    state: FinancialIntakeState
+  ): "continue" | "confirm" | "complete" {
+    if (
+      state.inconsistencies.some(
+        (item) => item.requiresConfirmation
+      )
+    ) {
+      return "confirm";
+    }
+
+    if (
+      state.missingFields.length === 0 &&
+      state.informationStatus === "sufficient"
+    ) {
+      return "complete";
+    }
+
+    return "continue";
+  }
+
+  private parseValue(
+    question: FinancialIntakeQuestion,
+    answer: string
+  ): unknown {
+    switch (question.type) {
+      case "currency":
+      case "number":
+      case "percentage":
+        return this.parseNumber(answer);
+
+      case "boolean":
+        return this.parseBoolean(answer);
+
+      case "date":
+        return this.parseDate(answer);
+
+      case "choice":
+      case "multi_choice":
+      case "text":
+        return answer;
+
+      default:
+        return undefined;
+    }
+  }
+
+  private parseNumber(
+    value: string
+  ): number | undefined {
+    const normalized = value
+      .replace(/\$/g, "")
+      .replace(/MXN/gi, "")
+      .replace(/USD/gi, "")
+      .replace(/,/g, "")
+      .replace(/%/g, "")
+      .trim();
+
+    const number = Number(normalized);
+
+    return Number.isFinite(number)
+      ? number
+      : undefined;
+  }
+
+  private parseBoolean(
+    value: string
+  ): boolean | undefined {
+    const normalized = value
+      .trim()
+      .toLowerCase();
+
+    if (
+      ["sÃ­", "si", "yes", "true", "1"].includes(
+        normalized
+      )
+    ) {
+      return true;
+    }
+
+    if (
+      ["no", "false", "0"].includes(
+        normalized
+      )
+    ) {
+      return false;
+    }
+
+    return undefined;
+  }
+
+  private parseDate(
+    value: string
+  ): string | undefined {
+    const timestamp = Date.parse(value);
+
+    if (Number.isNaN(timestamp)) {
+      return undefined;
+    }
+
+    return new Date(timestamp)
+      .toISOString()
+      .split("T")[0];
+  }
+
+  private calculateConfidence(
+    question: FinancialIntakeQuestion,
+    rawAnswer: string,
+    interpretedValue: unknown
+  ): number {
+    if (!rawAnswer.trim()) {
+      return 0;
+    }
+
+    if (
+      question.type === "currency" ||
+      question.type === "number" ||
+      question.type === "percentage"
+    ) {
+      return typeof interpretedValue === "number"
+        ? 0.95
+        : 0;
+    }
+
+    if (
+      question.type === "boolean" ||
+      question.type === "date"
+    ) {
+      return interpretedValue !== undefined
+        ? 0.95
+        : 0;
+    }
+
+    return 0.85;
+  }
+
+  private buildClarificationQuestion(
+    question: FinancialIntakeQuestion
+  ): string {
+    switch (question.type) {
+      case "currency":
+        return `Â¿Puedes indicar el monto de "${question.question}" en pesos mexicanos?`;
+
+      case "number":
+        return `Â¿Puedes proporcionar un nÃºmero para "${question.question}"?`;
+
+      case "percentage":
+        return `Â¿Puedes indicar el porcentaje correspondiente a "${question.question}"?`;
+
+      case "date":
+        return "Â¿Puedes indicar la fecha o perÃ­odo con mayor precisiÃ³n?";
+
+      case "boolean":
+        return "Â¿La respuesta es sÃ­ o no?";
+
+      default:
+        return `Â¿Puedes aclarar tu respuesta a esta pregunta: "${question.question}"?`;
+    }
+  }
+
+  private isNonNegativeField(
+    field: string
+  ): boolean {
+    return [
+      "revenue",
+      "operating_expenses",
+      "cash",
+      "accounts_receivable",
+      "accounts_payable",
+      "debt",
+      "inventory",
+      "fixed_assets",
+      "equity",
+    ].includes(field);
+  }
+}
+
+export const financialAIInterviewer =
+  new FinancialAIInterviewer();
+
+
+===== C:\Users\HP\Desktop\crm-ai-core-clean\platform\financial\intake\ai\provider.ts =====
+import {
+  FinancialIntakeMode,
+  FinancialIntakeQuestion,
+} from "../types";
+
+export interface FinancialAIProviderRequest {
+  systemPrompt: string;
+  userPrompt: string;
+  temperature?: number;
+}
+
+export interface FinancialAIProviderResponse {
+  content: string;
+  provider: "ollama" | "openrouter" | "fallback";
+  model?: string;
+}
+
+export interface FinancialAIProvider {
+  generate(
+    request: FinancialAIProviderRequest
+  ): Promise<FinancialAIProviderResponse>;
+}
+
+class FinancialAIProviderAdapter
+  implements FinancialAIProvider
+{
+  async generate(
+    request: FinancialAIProviderRequest
+  ): Promise<FinancialAIProviderResponse> {
+    const provider =
+      process.env.FINANCIAL_AI_PROVIDER ??
+      "ollama";
+
+    if (provider === "openrouter") {
+      return this.generateWithOpenRouter(
+        request
+      );
+    }
+
+    return this.generateWithOllama(request);
+  }
+
+  private async generateWithOllama(
+    request: FinancialAIProviderRequest
+  ): Promise<FinancialAIProviderResponse> {
+    const baseUrl =
+      process.env.OLLAMA_BASE_URL ??
+      "http://127.0.0.1:11434";
+
+    const model =
+      process.env.FINANCIAL_OLLAMA_MODEL ??
+      "qwen2.5:3b";
+
+    try {
+      const response = await fetch(
+        `${baseUrl}/api/generate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            prompt: this.buildPrompt(request),
+            stream: false,
+            options: {
+              temperature:
+                request.temperature ?? 0.1,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Ollama respondiÃ³ con HTTP ${response.status}.`
+        );
+      }
+
+      const data = (await response.json()) as {
+        response?: string;
+      };
+
+      if (!data.response?.trim()) {
+        throw new Error(
+          "Ollama no devolviÃ³ contenido."
+        );
+      }
+
+      return {
+        content: data.response.trim(),
+        provider: "ollama",
+        model,
+      };
+    } catch {
+      return this.fallbackResponse();
+    }
+  }
+
+  private async generateWithOpenRouter(
+    request: FinancialAIProviderRequest
+  ): Promise<FinancialAIProviderResponse> {
+    const apiKey =
+      process.env.OPENROUTER_API_KEY;
+
+    const model =
+      process.env.FINANCIAL_OPENROUTER_MODEL ??
+      "qwen/qwen-2.5-3b-instruct";
+
+    if (!apiKey) {
+      return this.fallbackResponse();
+    }
+
+    try {
+      const response = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            temperature:
+              request.temperature ?? 0.1,
+            messages: [
+              {
+                role: "system",
+                content: request.systemPrompt,
+              },
+              {
+                role: "user",
+                content: request.userPrompt,
+              },
+            ],
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `OpenRouter respondiÃ³ con HTTP ${response.status}.`
+        );
+      }
+
+      const data = (await response.json()) as {
+        choices?: Array<{
+          message?: {
+            content?: string;
+          };
+        }>;
+      };
+
+      const content =
+        data.choices?.[0]?.message?.content;
+
+      if (!content?.trim()) {
+        throw new Error(
+          "OpenRouter no devolviÃ³ contenido."
+        );
+      }
+
+      return {
+        content: content.trim(),
+        provider: "openrouter",
+        model,
+      };
+    } catch {
+      return this.fallbackResponse();
+    }
+  }
+
+  private buildPrompt(
+    request: FinancialAIProviderRequest
+  ): string {
+    return [
+      request.systemPrompt,
+      "",
+      request.userPrompt,
+    ].join("\n");
+  }
+
+  private fallbackResponse(): FinancialAIProviderResponse {
+    return {
+      content:
+        "No fue posible consultar el proveedor de IA. ContinÃºa utilizando la validaciÃ³n financiera estructurada.",
+      provider: "fallback",
+    };
+  }
+}
+
+export const financialAIProvider =
+  new FinancialAIProviderAdapter();
+
+export function buildFinancialInterviewerSystemPrompt(
+  mode: FinancialIntakeMode
+): string {
+  const modeInstruction =
+    mode === "owner"
+      ? "Utiliza lenguaje sencillo y evita terminologÃ­a contable innecesaria."
+      : "Utiliza terminologÃ­a contable y financiera tÃ©cnica.";
+
+  return [
+    "Eres un entrevistador financiero especializado.",
+    "Trabajas exclusivamente con informaciÃ³n proporcionada por el usuario.",
+    "Nunca inventes valores financieros.",
+    "No completes datos faltantes mediante suposiciones.",
+    "Distingue entre informaciÃ³n suficiente, insuficiente e inconsistente.",
+    "Si existe una contradicciÃ³n, solicita aclaraciÃ³n.",
+    "Si un dato es materialmente diferente de uno anterior, solicita confirmaciÃ³n humana.",
+    "Haz Ãºnicamente las preguntas necesarias para completar la informaciÃ³n.",
+    modeInstruction,
+    "Responde de forma clara y estructurada.",
+  ].join(" ");
+}
+
+export function buildFinancialInterviewerPrompt(
+  question: FinancialIntakeQuestion,
+  rawAnswer: string
+): string {
+  return [
+    `Pregunta financiera: ${question.question}`,
+    `Campo esperado: ${question.field}`,
+    `Tipo esperado: ${question.type}`,
+    `Respuesta del usuario: ${rawAnswer}`,
+    "",
+    "Interpreta exclusivamente la respuesta proporcionada.",
+    "No agregues informaciÃ³n que no estÃ© presente.",
+    "Devuelve Ãºnicamente informaciÃ³n derivada de la respuesta.",
+  ].join("\n");
+}

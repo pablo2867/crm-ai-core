@@ -38,7 +38,9 @@ export async function POST(
     const tenant =
       await authEngine.getTenant();
 
-    await authEngine.requirePermission(Permissions.AI_EXECUTE);
+    await authEngine.requirePermission(
+      Permissions.AI_EXECUTE
+    );
 
     // =======================================
     // REQUEST
@@ -49,6 +51,23 @@ export async function POST(
 
     const question =
       body.question || "";
+
+    // =======================================
+    // AUTHORITY TRACE — API INPUT
+    // =======================================
+
+    console.log(
+      "[AUTHORITY TRACE] API INPUT",
+      JSON.stringify({
+        question,
+        bodyIntent:
+          body.intent ?? null,
+        bodyWorkflow:
+          body.workflow ?? null,
+        bodyCapability:
+          body.capability ?? null,
+      })
+    );
 
     // =======================================
     // AI CORE

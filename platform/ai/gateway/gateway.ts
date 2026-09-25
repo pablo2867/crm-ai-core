@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+﻿import OpenAI from "openai";
 
 import {
   generateOllamaResponse,
@@ -159,7 +159,7 @@ export class AIGateway {
           startedAt,
 
         error:
-          "OPENROUTER_API_KEY no est� configurada.",
+          "OPENROUTER_API_KEY no estï¿½ configurada.",
 
         errorCode:
           "CONNECTION_ERROR",
@@ -255,7 +255,7 @@ export class AIGateway {
           duration,
 
           error:
-            "OpenRouter devolvi� una respuesta vac�a.",
+            "OpenRouter devolviï¿½ una respuesta vacï¿½a.",
 
           errorCode:
             "EMPTY_RESPONSE",
@@ -364,3 +364,4 @@ export class AIGateway {
 
 export const aiGateway =
   new AIGateway();
+

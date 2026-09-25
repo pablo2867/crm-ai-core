@@ -38,6 +38,7 @@ export class LeadRepository {
 
     return count ?? 0;
   }
+
   async create(
     lead: CreateLeadData,
   ) {
@@ -46,9 +47,7 @@ export class LeadRepository {
       data,
       error,
     } = await supabaseAdmin
-
       .from("leads")
-
       .insert([
         {
           name:
@@ -97,9 +96,7 @@ export class LeadRepository {
             lead.closeProbability,
         },
       ])
-
       .select()
-
       .single();
 
     if (error) {
@@ -122,28 +119,22 @@ export class LeadRepository {
     const {
       error,
     } = await supabaseAdmin
-
       .from("leads")
-
       .update(
         request.values,
       )
-
       .eq(
         "id",
         request.id,
       )
-
       .eq(
         "user_id",
         request.userId,
       )
-
       .eq(
         "organization_id",
         request.organizationId,
       )
-
       .eq(
         "workspace_id",
         request.workspaceId,
@@ -169,29 +160,23 @@ export class LeadRepository {
     const {
       error,
     } = await supabaseAdmin
-
       .from("leads")
-
       .update({
         pipeline_stage:
           request.pipelineStage,
       })
-
       .eq(
         "id",
         request.id,
       )
-
       .eq(
         "user_id",
         request.userId,
       )
-
       .eq(
         "organization_id",
         request.organizationId,
       )
-
       .eq(
         "workspace_id",
         request.workspaceId,
@@ -217,26 +202,20 @@ export class LeadRepository {
     const {
       error,
     } = await supabaseAdmin
-
       .from("leads")
-
       .delete()
-
       .eq(
         "id",
         request.id,
       )
-
       .eq(
         "user_id",
         request.userId,
       )
-
       .eq(
         "organization_id",
         request.organizationId,
       )
-
       .eq(
         "workspace_id",
         request.workspaceId,
@@ -248,6 +227,7 @@ export class LeadRepository {
 
     return true;
   }
+
   /*
   ---------------------------------------
   Find Lead By Id
@@ -262,31 +242,24 @@ export class LeadRepository {
       data,
       error,
     } = await supabaseAdmin
-
       .from("leads")
-
       .select("*")
-
       .eq(
         "id",
         request.id,
       )
-
       .eq(
         "user_id",
         request.userId,
       )
-
       .eq(
         "organization_id",
         request.organizationId,
       )
-
       .eq(
         "workspace_id",
         request.workspaceId,
       )
-
       .single();
 
     if (error) {
@@ -308,32 +281,28 @@ export class LeadRepository {
 
     let query =
       supabaseAdmin
-
         .from("leads")
-
         .select(`
           id,
           user_id,
           name,
           company,
           email,
+          phone,
           ai_score,
           ai_temperature,
           close_probability,
           estimated_revenue,
           pipeline_stage
         `)
-
         .eq(
           "user_id",
           request.userId,
         )
-
         .eq(
           "organization_id",
           request.organizationId,
         )
-
         .eq(
           "workspace_id",
           request.workspaceId,
@@ -389,10 +358,8 @@ export class LeadRepository {
     }
 
     query = query.order(
-
       request.orderBy ??
         "created_at",
-
       {
         ascending:
           request.ascending ??
@@ -406,9 +373,7 @@ export class LeadRepository {
     ) {
 
       query = query.range(
-
         request.offset,
-
         request.offset +
           request.limit -
           1,
@@ -437,7 +402,6 @@ export class LeadRepository {
 
     return data ?? [];
   }
-
 }
 
 export const leadRepository =

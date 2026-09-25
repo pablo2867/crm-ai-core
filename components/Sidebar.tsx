@@ -11,6 +11,8 @@ import {
   Sparkles,
   CheckSquare,
   Briefcase,
+  Landmark,
+  LineChart,
 } from "lucide-react";
 
 import LogoutButton from "@/components/LogoutButton";
@@ -56,6 +58,18 @@ const items = [
     label: "Executive",
     href: "/dashboard/executive",
     icon: Briefcase,
+  },
+
+  {
+    label: "Commercial",
+    href: "/dashboard/commercial",
+    icon: LineChart,
+  },
+
+  {
+    label: "Financial Intelligence",
+    href: "/financial",
+    icon: Landmark,
   },
 ];
 
@@ -121,9 +135,7 @@ export default function Sidebar() {
 
           const active =
             pathname === item.href ||
-            pathname.startsWith(
-              item.href + "/"
-            );
+            pathname.startsWith(item.href + "/");
 
           return (
             <Link

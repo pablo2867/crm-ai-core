@@ -26,6 +26,10 @@ import {
   chatResponseSkillDefinition,
 } from "./chat-response";
 
+import {
+  whatsappResponseSkillDefinition,
+} from "./whatsapp-response";
+
 import type {
   SkillDefinition,
 } from "./types";
@@ -115,6 +119,8 @@ export const skillRegistry =
 
     chatResponseSkillDefinition,
 
+    whatsappResponseSkillDefinition,
+
   ]);
 
 export function getSkill(
@@ -132,4 +138,5 @@ export function getAllSkills(): SkillDefinition[] {
   return skillRegistry.getAll();
 
 }
+
 

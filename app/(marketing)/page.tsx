@@ -1,4 +1,5 @@
-﻿import Link from "next/link";
+﻿import LegalLinks from "@/components/legal/LegalLinks";
+import Link from "next/link";
 
 const features = [
   {
@@ -475,7 +476,10 @@ export default function MarketingPage() {
           </div>
         </div>
       </footer>
-    </main>
+    
+      <LegalLinks />
+</main>
   );
 }
+
 

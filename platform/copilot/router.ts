@@ -11,25 +11,31 @@ export async function routeCopilotRequest(
   message: string,
   input: Record<string, unknown> = {}
 ) {
-
   const intent: CopilotIntent | null =
     resolveIntent(message);
 
-  if (!intent) {
+  // AUTHORITY TRACE:
+  // Verifica qué intent sale realmente del Copilot Router.
+  console.log(
+    "[AUTHORITY TRACE] ROUTER",
+    JSON.stringify({
+      message,
+      resolvedIntent: intent?.intent ?? null,
+      confidence: intent?.confidence ?? null,
+    })
+  );
 
+  if (!intent) {
     return {
       handled: false,
     };
-
   }
 
   const result =
     await runtimeEngine.execute({
-
       message,
 
-      intent:
-        intent.intent,
+      intent: intent.intent,
 
       userId:
         typeof input.userId === "string"
@@ -56,17 +62,11 @@ export async function routeCopilotRequest(
           ? input.moduleId
           : undefined,
 
-      context:
-        input,
-
+      context: input,
     });
 
   return {
-
     handled: true,
-
     result,
-
   };
-
 }

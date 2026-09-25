@@ -53,7 +53,7 @@ export function WorkflowCard({
       <div
         className="
           grid
-          grid-cols-2
+          grid-cols-1 sm:grid-cols-2
           gap-4
         "
       >
@@ -246,3 +246,4 @@ export function WorkflowCard({
 }
 
 export default WorkflowCard;
+

@@ -10,7 +10,7 @@ export default function LeadInfoCards({
       className="
         mt-4
         grid
-        grid-cols-2
+        grid-cols-1 sm:grid-cols-2
         gap-3
       "
     >
@@ -91,3 +91,4 @@ export default function LeadInfoCards({
   );
 
 }
+

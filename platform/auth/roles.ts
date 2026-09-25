@@ -41,6 +41,8 @@ export const RolePermissions: Record<
 
     Permissions.CRM_ANALYTICS_VIEW,
 
+    Permissions.FINANCIAL_ANALYSIS_VIEW,
+
     Permissions.AI_EXECUTE,
     Permissions.AI_MEMORY_VIEW,
 
@@ -66,6 +68,8 @@ export const RolePermissions: Record<
     Permissions.CRM_PIPELINE_UPDATE,
 
     Permissions.CRM_ANALYTICS_VIEW,
+
+    Permissions.FINANCIAL_ANALYSIS_VIEW,
 
     Permissions.AI_EXECUTE,
 
@@ -127,3 +131,4 @@ export class RoleEngine {
 
 export const roleEngine =
   new RoleEngine();
+

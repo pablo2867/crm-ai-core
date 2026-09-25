@@ -3,6 +3,19 @@
 import { useEffect, useState } from "react";
 import { RadarData } from "@/types/copilot";
 
+type CopilotLead = {
+  id?: string | number;
+  name?: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  ai_score?: number;
+  ai_temperature?: string;
+  close_probability?: number;
+  estimated_revenue?: number;
+  status?: string;
+};
+
 export function useCopilotDashboard() {
   const [loading, setLoading] =
     useState(true);
@@ -59,14 +72,21 @@ export function useCopilotDashboard() {
         data.summary || ""
       );
 
+      const bestLead =
+        data.bestLead as CopilotLead | null;
+
       setRadarData({
-        bestLead: data.bestLead,
-        score: data.score,
+        bestLead:
+          bestLead?.name ||
+          "Sin datos",
+        score:
+          data.score || 0,
         probability:
-          data.probability,
-        revenue: data.revenue,
+          data.probability || 0,
+        revenue:
+          data.revenue || 0,
         riskLeads:
-          data.riskLeads,
+          data.riskLeads || 0,
       });
     } catch (error) {
       console.error(
@@ -96,4 +116,3 @@ export function useCopilotDashboard() {
     refresh,
   };
 }
-

@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   Capability,
 } from "./types";
 
@@ -9,6 +9,10 @@ import {
 import {
   nextBestActionCapability,
 } from "./sales/next-best-action";
+
+import {
+  commercialProposalCapability,
+} from "./commercial/commercial-proposal";
 
 import {
   dailyBriefCapability,
@@ -29,6 +33,8 @@ export const capabilityRegistry: Capability[] = [
   salesFollowupCapability,
 
   nextBestActionCapability,
+
+  commercialProposalCapability,
 
   /*
   ---------------------------------------

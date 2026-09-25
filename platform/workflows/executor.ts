@@ -1,4 +1,7 @@
-﻿import {
+﻿import { planEnforcementEngine } from "@/platform/billing/enforcement";
+import { billingEngine } from "@/platform/billing";
+
+import {
   skillEngine,
   SkillResult,
 } from "@/platform/skills";
@@ -10,7 +13,6 @@ import {
 import {
   activityService,
 } from "@/platform/activity";
-
 
 import type {
   Workflow,
@@ -39,7 +41,101 @@ export class WorkflowExecutor {
         ? context.userId
         : undefined;
 
+    const organizationId =
+      typeof context.organizationId === "string"
+        ? context.organizationId
+        : undefined;
+
+    const workspaceId =
+      typeof context.workspaceId === "string"
+        ? context.workspaceId
+        : undefined;
+
+    /*
+     * ---------------------------------------
+     * ORIGINAL REQUEST CONTEXT
+     * ---------------------------------------
+     *
+     * El Workflow Executor no debe perder
+     * la intención ni el mensaje original.
+     *
+     * Estas propiedades permiten que una
+     * capability reciba la misma intención
+     * que fue detectada por Copilot / Runtime.
+     */
+
+    const requestIntent =
+      typeof context.intent === "string"
+        ? context.intent
+        : undefined;
+
+    const originalMessage =
+      typeof context.message === "string"
+        ? context.message
+        : typeof context.question === "string"
+          ? context.question
+          : undefined;
+
     let workflowSuccess = true;
+
+    /*
+     * ---------------------------------------
+     * SaaS Commercial Enforcement
+     * ---------------------------------------
+     *
+     * Solo workflows marcados como advanced
+     * requieren el entitlement correspondiente.
+     */
+
+    if (workflow.metadata?.advanced === true) {
+
+      if (!organizationId) {
+
+        throw new Error(
+          "ORGANIZATION_ID_REQUIRED",
+        );
+
+      }
+
+      const subscription =
+        await billingEngine.get(
+          organizationId,
+        );
+
+      if (!subscription) {
+
+        throw new Error(
+          "SUBSCRIPTION_NOT_FOUND",
+        );
+
+      }
+
+      const entitlements =
+        billingEngine.getEntitlements(
+          subscription.plan,
+        );
+
+      const enforcement =
+        planEnforcementEngine.check(
+          "advanced_workflows",
+          {
+            organizationId,
+
+            entitlement:
+              entitlements,
+          },
+        );
+
+      if (!enforcement.allowed) {
+
+        throw new Error(
+          enforcement.reason ??
+            "ADVANCED_WORKFLOWS_NOT_INCLUDED",
+        );
+
+      }
+
+    }
 
     try {
 
@@ -53,18 +149,18 @@ export class WorkflowExecutor {
         try {
 
           /*
-          ---------------------------------------
-          STEP INPUT
-          ---------------------------------------
-
-          Cada skill recibe:
-
-          1. El contexto acumulado del workflow.
-          2. El input específico del step.
-
-          Esto permite que la salida de una skill
-          se convierta en entrada de la siguiente.
-          */
+           * ---------------------------------------
+           * STEP INPUT
+           * ---------------------------------------
+           *
+           * Cada step recibe:
+           *
+           * 1. El contexto original.
+           * 2. El input específico del step.
+           *
+           * La salida de un step puede convertirse
+           * en contexto para los siguientes.
+           */
 
           const stepInput:
             WorkflowContext = {
@@ -74,46 +170,78 @@ export class WorkflowExecutor {
             ...(step.input ?? {}),
 
           };
+
           /*
-          ---------------------------------------
-          Capability
-          ---------------------------------------
-          */
+           * ---------------------------------------
+           * CAPABILITY
+           * ---------------------------------------
+           */
 
           if (step.capability) {
 
+            console.log(
+              "[AUTHORITY TRACE] WORKFLOW → CAPABILITY",
+              JSON.stringify({
+
+                workflowId:
+                  workflow.id,
+
+                workflowName:
+                  workflow.name,
+
+                stepId:
+                  step.id,
+
+                capability:
+                  step.capability,
+
+                intent:
+                  requestIntent,
+
+                originalMessage:
+                  originalMessage,
+
+              })
+            );
+
             const capabilityResult =
               await capabilityEngine.execute(
-
                 step.capability,
-
                 {
 
                   userId,
 
-                  organizationId:
-                    typeof context.organizationId ===
-                    "string"
-                      ? context.organizationId
-                      : undefined,
+                  organizationId,
 
-                  workspaceId:
-                    typeof context.workspaceId ===
-                    "string"
-                      ? context.workspaceId
-                      : undefined,
+                  workspaceId,
 
                   workflowId:
                     workflow.id,
 
+                  /*
+                   * IMPORTANTE:
+                   * conservar la intención original.
+                   */
+
+                  intent:
+                    requestIntent,
+
+                  /*
+                   * IMPORTANTE:
+                   * conservar el mensaje original.
+                   *
+                   * Solo usamos el workflow ID como
+                   * fallback si no existe mensaje.
+                   */
+
                   goal:
+                    originalMessage ??
                     workflow.id,
 
                   input:
                     stepInput,
 
                 },
-
               );
 
             result = {
@@ -132,48 +260,37 @@ export class WorkflowExecutor {
           }
 
           /*
-          ---------------------------------------
-          Skill
-          ---------------------------------------
-          */
+           * ---------------------------------------
+           * SKILL
+           * ---------------------------------------
+           */
 
           else if (step.skill) {
 
             result =
               await skillEngine.executeSkill(
-
                 step.skill,
-
                 {
 
                   userId,
 
-                  organizationId:
-                    typeof context.organizationId ===
-                    "string"
-                      ? context.organizationId
-                      : undefined,
+                  organizationId,
 
-                  workspaceId:
-                    typeof context.workspaceId ===
-                    "string"
-                      ? context.workspaceId
-                      : undefined,
+                  workspaceId,
 
                   input:
                     stepInput,
 
                 },
-
               );
 
           }
 
           /*
-          ---------------------------------------
-          Invalid Step
-          ---------------------------------------
-          */
+           * ---------------------------------------
+           * INVALID STEP
+           * ---------------------------------------
+           */
 
           else {
 
@@ -191,6 +308,58 @@ export class WorkflowExecutor {
         }
 
         catch (error) {
+
+          /*
+           * ---------------------------------------
+           * AUTHORITY TRACE
+           * ---------------------------------------
+           */
+
+          console.error(
+            "[AUTHORITY TRACE] WORKFLOW EXECUTION ERROR",
+            JSON.stringify(
+              {
+
+                workflowId:
+                  workflow.id,
+
+                workflowName:
+                  workflow.name,
+
+                stepId:
+                  step.id,
+
+                capability:
+                  step.capability ??
+                  null,
+
+                skill:
+                  step.skill ??
+                  null,
+
+                intent:
+                  requestIntent ??
+                  null,
+
+                originalMessage:
+                  originalMessage ??
+                  null,
+
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : String(error),
+
+                stack:
+                  error instanceof Error
+                    ? error.stack
+                    : undefined,
+
+              },
+              null,
+              2,
+            ),
+          );
 
           result = {
 
@@ -212,10 +381,10 @@ export class WorkflowExecutor {
           );
 
         /*
-        ---------------------------------------
-        Execution Record
-        ---------------------------------------
-        */
+         * ---------------------------------------
+         * EXECUTION RECORD
+         * ---------------------------------------
+         */
 
         execution.push({
 
@@ -241,10 +410,10 @@ export class WorkflowExecutor {
         results.push(result);
 
         /*
-        ---------------------------------------
-        Activity
-        ---------------------------------------
-        */
+         * ---------------------------------------
+         * ACTIVITY
+         * ---------------------------------------
+         */
 
         if (userId) {
 
@@ -255,16 +424,15 @@ export class WorkflowExecutor {
 
             userId,
 
-            
             organizationId:
-              typeof context.organizationId === "string"
-                ? context.organizationId
-                : "",
+              organizationId ??
+              "",
 
             workspaceId:
-              typeof context.workspaceId === "string"
-                ? context.workspaceId
-                : "",workflow:
+              workspaceId ??
+              "",
+
+            workflow:
               workflow.id,
 
             skill:
@@ -293,29 +461,10 @@ export class WorkflowExecutor {
         }
 
         /*
-        ---------------------------------------
-        CONTEXT PROPAGATION
-        ---------------------------------------
-
-        La salida de cada skill se incorpora
-        al contexto para el siguiente step.
-
-        Ejemplo:
-
-        find-best-lead
-              ↓
-        { bestLead }
-              ↓
-        context.bestLead
-              ↓
-        create-task
-              ↓
-        { task }
-              ↓
-        context.task
-              ↓
-        generate-followup
-        */
+         * ---------------------------------------
+         * CONTEXT PROPAGATION
+         * ---------------------------------------
+         */
 
         if (
           result.success &&
@@ -331,10 +480,10 @@ export class WorkflowExecutor {
         }
 
         /*
-        ---------------------------------------
-        STOP ON FAILURE
-        ---------------------------------------
-        */
+         * ---------------------------------------
+         * STOP ON FAILURE
+         * ---------------------------------------
+         */
 
         if (!result.success) {
 
@@ -352,12 +501,12 @@ export class WorkflowExecutor {
     finally {
 
       /*
-      Hooks futuros:
-
-      - Telemetry
-      - Metrics
-      - Runtime Events
-      */
+       * Hooks futuros:
+       *
+       * - Telemetry
+       * - Metrics
+       * - Runtime Events
+       */
 
     }
 
@@ -367,7 +516,7 @@ export class WorkflowExecutor {
         workflow.id,
 
       workflowName:
-        workflow.id,
+        workflow.name,
 
       success:
         workflowSuccess,
@@ -392,6 +541,7 @@ export class WorkflowExecutor {
 
 export const workflowExecutor =
   new WorkflowExecutor();
+
 
 
 

@@ -31,8 +31,9 @@ export const Permissions = {
   CRM_PIPELINE_UPDATE:
     "crm.pipeline.update",
 
-  CRM_ANALYTICS_VIEW:
-    "crm.analytics.view",
+  CRM_ANALYTICS_VIEW: "crm.analytics.view",
+
+  FINANCIAL_ANALYSIS_VIEW: "financial.analysis.view",
 
   /*
   ---------------------------------------
@@ -170,3 +171,5 @@ export class PermissionEngine {
 
 export const permissionEngine =
   new PermissionEngine();
+
+
